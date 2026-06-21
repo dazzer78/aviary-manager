@@ -2,7 +2,6 @@
 -- Run after supabase/schema.sql
 
 alter table public.species add column if not exists default_ring_days int not null default 7;
-alter table public.clutches add column if not exists nest_id uuid references public.nests(id) on delete set null;
 alter table public.chicks add column if not exists weaned_date date;
 
 create table if not exists public.bird_parentage (
@@ -27,6 +26,8 @@ create table if not exists public.nests (
   created_at timestamptz not null default now()
 );
 
+alter table public.clutches add column if not exists nest_id uuid references public.nests(id) on delete set null;
+
 create table if not exists public.breeding_events (
   id uuid primary key default gen_random_uuid(),
   aviary_id uuid references public.aviaries(id) on delete cascade,
@@ -46,6 +47,10 @@ alter table public.bird_parentage enable row level security;
 alter table public.nests enable row level security;
 alter table public.breeding_events enable row level security;
 
-create policy "Users can manage own parentage" on public.bird_parentage for all using (exists (select 1 from public.aviaries a where a.id = bird_parentage.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = bird_parentage.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own nests" on public.nests for all using (exists (select 1 from public.aviaries a where a.id = nests.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = nests.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own breeding events" on public.breeding_events for all using (exists (select 1 from public.aviaries a where a.id = breeding_events.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = breeding_events.aviary_id and a.owner_id = auth.uid()));
+drop policy if exists "Users can manage own parentage" on public.bird_parentage;
+drop policy if exists "Users can manage own nests" on public.nests;
+drop policy if exists "Users can manage own breeding events" on public.breeding_events;
+
+create policy "Users can manage own parentage" on public.bird_parentage for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own nests" on public.nests for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own breeding events" on public.breeding_events for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));

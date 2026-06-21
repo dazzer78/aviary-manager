@@ -143,16 +143,55 @@ alter table public.treatments enable row level security;
 alter table public.sales enable row level security;
 alter table public.bird_photos enable row level security;
 
+-- Compatibility: if tables already existed from older schemas, ensure ownership columns exist for policies.
+alter table public.aviaries add column if not exists owner_id uuid references auth.users(id) on delete cascade;
+alter table public.species add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.birds add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.birds add column if not exists ring_number text;
+alter table public.breeding_seasons add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.pairs add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.clutches add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.eggs add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.chicks add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.treatments add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.sales add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.bird_photos add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'birds' and column_name = 'leg_ring'
+  ) then
+    update public.birds
+    set ring_number = coalesce(ring_number, leg_ring)
+    where ring_number is null;
+  end if;
+end $$;
+
+drop policy if exists "Users can manage own aviaries" on public.aviaries;
+drop policy if exists "Users can manage own species" on public.species;
+drop policy if exists "Users can manage own birds" on public.birds;
+drop policy if exists "Users can manage own seasons" on public.breeding_seasons;
+drop policy if exists "Users can manage own pairs" on public.pairs;
+drop policy if exists "Users can manage own clutches" on public.clutches;
+drop policy if exists "Users can manage own eggs" on public.eggs;
+drop policy if exists "Users can manage own chicks" on public.chicks;
+drop policy if exists "Users can manage own treatments" on public.treatments;
+drop policy if exists "Users can manage own sales" on public.sales;
+drop policy if exists "Users can manage own photos" on public.bird_photos;
+
 create policy "Users can manage own aviaries" on public.aviaries for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
 -- MVP policies: records are visible/editable when they belong to one of the user's aviaries.
-create policy "Users can manage own species" on public.species for all using (exists (select 1 from public.aviaries a where a.id = species.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = species.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own birds" on public.birds for all using (exists (select 1 from public.aviaries a where a.id = birds.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = birds.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own seasons" on public.breeding_seasons for all using (exists (select 1 from public.aviaries a where a.id = breeding_seasons.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = breeding_seasons.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own pairs" on public.pairs for all using (exists (select 1 from public.aviaries a where a.id = pairs.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = pairs.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own clutches" on public.clutches for all using (exists (select 1 from public.aviaries a where a.id = clutches.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = clutches.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own eggs" on public.eggs for all using (exists (select 1 from public.aviaries a where a.id = eggs.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = eggs.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own chicks" on public.chicks for all using (exists (select 1 from public.aviaries a where a.id = chicks.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = chicks.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own treatments" on public.treatments for all using (exists (select 1 from public.aviaries a where a.id = treatments.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = treatments.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own sales" on public.sales for all using (exists (select 1 from public.aviaries a where a.id = sales.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = sales.aviary_id and a.owner_id = auth.uid()));
-create policy "Users can manage own photos" on public.bird_photos for all using (exists (select 1 from public.aviaries a where a.id = bird_photos.aviary_id and a.owner_id = auth.uid())) with check (exists (select 1 from public.aviaries a where a.id = bird_photos.aviary_id and a.owner_id = auth.uid()));
+create policy "Users can manage own species" on public.species for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own birds" on public.birds for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own seasons" on public.breeding_seasons for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own pairs" on public.pairs for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own clutches" on public.clutches for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own eggs" on public.eggs for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own chicks" on public.chicks for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own treatments" on public.treatments for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own sales" on public.sales for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
+create policy "Users can manage own photos" on public.bird_photos for all using (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid())) with check (aviary_id in (select a.id from public.aviaries a where a.owner_id = auth.uid()));
