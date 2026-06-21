@@ -1,0 +1,1 @@
+export default function EditBirdPage() { return (<div className='card'><div className='card-body'><h2>Edit Bird</h2><p>Edit bird details, status, photo and breeding information.</p></div></div>);}
