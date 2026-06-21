@@ -22,10 +22,7 @@ export async function createBird(formData: FormData) {
     } else {
       const { data: createdSpecies, error: speciesError } = await supabase
         .from("species")
-        .insert({
-          aviary_id: aviary.id,
-          name: speciesName,
-        })
+        .insert({ aviary_id: aviary.id, name: speciesName })
         .select("id")
         .single();
 
@@ -41,7 +38,7 @@ export async function createBird(formData: FormData) {
     aviary_id: aviary.id,
     species_id: speciesId,
     ring_number: ringNumber,
-    name: String(formData.get("name") || "").trim() || null,
+    name: ringNumber,
     sex: String(formData.get("sex") || "unknown"),
     mutation: String(formData.get("mutation") || "").trim() || null,
     date_of_birth: String(formData.get("date_of_birth") || "") || null,
