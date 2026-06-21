@@ -11,6 +11,7 @@ export type Bird = {
   status: string;
   photo_url: string | null;
   notes: string | null;
+  cage_id?: string | null;
   species?: { name: string } | null;
 };
 
@@ -44,16 +45,18 @@ export async function getUserAndAviary() {
 export async function getDashboardData() {
   const { supabase, aviary } = await getUserAndAviary();
 
-  const [birds, pairs, eggs, chicks, treatments, sales] = await Promise.all([
-    supabase.from("birds").select("*, species(name)").eq("aviary_id", aviary.id).order("created_at", { ascending: false }).limit(8),
-    supabase.from("pairs").select("id, status").eq("aviary_id", aviary.id),
-    supabase.from("eggs").select("id, status, expected_hatch_date").eq("aviary_id", aviary.id),
+  const [birds, pairs, eggs, chicks, treatments, sales, cages, tasks] = await Promise.all([
+    supabase.from("birds").select("*, species(name)").eq("aviary_id", aviary.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("pairs").select("id, status, created_at").eq("aviary_id", aviary.id),
+    supabase.from("eggs").select("id, status, expected_hatch_date, hatch_date").eq("aviary_id", aviary.id),
     supabase.from("chicks").select("id, status, ring_due_date").eq("aviary_id", aviary.id),
-    supabase.from("treatments").select("id, treatment_name, follow_up_date").eq("aviary_id", aviary.id).order("treatment_date", { ascending: false }).limit(5),
+    supabase.from("treatments").select("id, treatment_name, follow_up_date").eq("aviary_id", aviary.id).order("treatment_date", { ascending: false }).limit(20),
     supabase.from("sales").select("id, amount, sale_date").eq("aviary_id", aviary.id).order("sale_date", { ascending: false }).limit(5),
+    supabase.from("cages").select("id, name, capacity, status").eq("aviary_id", aviary.id),
+    supabase.from("tasks").select("id, title, due_at, status, priority").eq("aviary_id", aviary.id).neq("status", "completed").order("due_at", { ascending: true, nullsFirst: false }).limit(20),
   ]);
 
-  for (const result of [birds, pairs, eggs, chicks, treatments, sales]) {
+  for (const result of [birds, pairs, eggs, chicks, treatments, sales, cages, tasks]) {
     if (result.error) throw new Error(result.error.message);
   }
 
@@ -65,6 +68,8 @@ export async function getDashboardData() {
     chicks: chicks.data ?? [],
     treatments: treatments.data ?? [],
     sales: sales.data ?? [],
+    cages: cages.data ?? [],
+    tasks: tasks.data ?? [],
   };
 }
 
