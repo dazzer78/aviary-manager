@@ -1,11 +1,28 @@
 import Link from "next/link";
 import { fallbackImage, getUserAndAviary } from "@/lib/aviary";
 
+function getSpeciesName(species: unknown): string | undefined {
+  if (Array.isArray(species)) {
+    const first = species[0] as { name?: string } | undefined;
+    return first?.name;
+  }
+
+  return (species as { name?: string } | null | undefined)?.name;
+}
+
+function getRingNumber(bird: Record<string, unknown>): string {
+  return String(bird.ring_number ?? bird.leg_ring ?? "-");
+}
+
+function getMutation(bird: Record<string, unknown>): string {
+  return String(bird.mutation ?? bird.color_mutation ?? "-");
+}
+
 export default async function BirdsPage() {
   const { supabase, aviary } = await getUserAndAviary();
   const { data: birds, error } = await supabase
     .from("birds")
-    .select("id, ring_number, name, sex, mutation, date_of_birth, status, photo_url, species(name)")
+    .select("*, species(name)")
     .eq("aviary_id", aviary.id)
     .order("created_at", { ascending: false });
 
@@ -28,14 +45,14 @@ export default async function BirdsPage() {
             <tbody>
               {(birds ?? []).map((bird) => (
                 <tr key={bird.id}>
-                  <td><div className="d-flex align-items-center gap-2"><img src={bird.photo_url || fallbackImage(bird.status)} alt={bird.ring_number} className="bird-thumb" /><strong>{bird.ring_number}</strong></div></td>
+                  <td><div className="d-flex align-items-center gap-2"><img src={bird.photo_url || fallbackImage(bird.status)} alt={getRingNumber(bird)} className="bird-thumb" /><strong>{getRingNumber(bird)}</strong></div></td>
                   <td>{bird.name ?? "-"}</td>
-                  <td>{bird.species?.name ?? "-"}</td>
-                  <td>{bird.mutation ?? "-"}</td>
+                  <td>{getSpeciesName(bird.species) ?? "-"}</td>
+                  <td>{getMutation(bird)}</td>
                   <td>{bird.sex}</td>
                   <td>{bird.date_of_birth ?? "-"}</td>
                   <td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td>
-                  <td className="text-end"><Link href={`/dashboard/birds/${bird.ring_number}`} className="btn btn-sm btn-outline-primary">View</Link></td>
+                  <td className="text-end"><Link href={`/dashboard/birds/${encodeURIComponent(getRingNumber(bird))}`} className="btn btn-sm btn-outline-primary">View</Link></td>
                 </tr>
               ))}
               {(birds ?? []).length === 0 ? <tr><td colSpan={8} className="text-center text-muted py-5">No birds yet. Add your first bird.</td></tr> : null}

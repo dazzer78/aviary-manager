@@ -2,20 +2,51 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fallbackImage, getUserAndAviary } from "@/lib/aviary";
 
+function getRingNumber(bird: Record<string, unknown>): string {
+  return String(bird.ring_number ?? bird.leg_ring ?? "-");
+}
+
+function getMutation(bird: Record<string, unknown>): string {
+  return String(bird.mutation ?? bird.color_mutation ?? "-");
+}
+
+function getSpeciesName(species: unknown): string | undefined {
+  if (Array.isArray(species)) {
+    const first = species[0] as { name?: string } | undefined;
+    return first?.name;
+  }
+
+  return (species as { name?: string } | null | undefined)?.name;
+}
+
 export default async function BirdProfilePage({ params }: { params: Promise<{ ring: string }> }) {
   const { ring } = await params;
   const { supabase, aviary } = await getUserAndAviary();
-  const ringNumber = decodeURIComponent(ring);
+  const ringParam = decodeURIComponent(ring);
 
-  const { data: bird, error } = await supabase
+  let { data: bird, error } = await supabase
     .from("birds")
     .select("*, species(name)")
     .eq("aviary_id", aviary.id)
-    .eq("ring_number", ringNumber)
+    .eq("ring_number", ringParam)
     .maybeSingle();
+
+  if (error?.message.includes('column "ring_number" does not exist')) {
+    const fallbackResult = await supabase
+      .from("birds")
+      .select("*, species(name)")
+      .eq("aviary_id", aviary.id)
+      .eq("leg_ring", ringParam)
+      .maybeSingle();
+
+    bird = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) throw new Error(error.message);
   if (!bird) notFound();
+
+  const birdRingNumber = getRingNumber(bird);
 
   const { data: treatments } = await supabase
     .from("treatments")
@@ -28,18 +59,18 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
     <>
       <div className="page-header">
         <div>
-          <h2 className="page-title">{bird.ring_number}</h2>
-          <div className="text-muted">{bird.species?.name ?? "Unknown species"}</div>
+          <h2 className="page-title">{birdRingNumber}</h2>
+          <div className="text-muted">{getSpeciesName(bird.species) ?? "Unknown species"}</div>
         </div>
-        <Link href={`/dashboard/birds/${bird.ring_number}/edit`} className="btn btn-primary">Edit bird</Link>
+        <Link href={`/dashboard/birds/${encodeURIComponent(birdRingNumber)}/edit`} className="btn btn-primary">Edit bird</Link>
       </div>
 
       <div className="row row-cards">
         <div className="col-lg-4">
           <div className="card">
             <div className="card-body text-center">
-              <img src={bird.photo_url || fallbackImage(bird.status)} alt={bird.ring_number} style={{ width: 180, height: 180, borderRadius: "50%", objectFit: "cover" }} />
-              <h3 className="mt-3 mb-1">{bird.name || bird.ring_number}</h3>
+              <img src={bird.photo_url || fallbackImage(bird.status)} alt={birdRingNumber} style={{ width: 180, height: 180, borderRadius: "50%", objectFit: "cover" }} />
+              <h3 className="mt-3 mb-1">{bird.name || birdRingNumber}</h3>
               <span className="badge bg-blue-lt text-blue">{bird.status}</span>
             </div>
           </div>
@@ -50,9 +81,9 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
             <div className="card-header"><h3 className="card-title mb-0">Details</h3></div>
             <div className="card-body">
               <div className="row g-3">
-                <div className="col-md-6"><div className="subheader">Ring number</div><strong>{bird.ring_number}</strong></div>
-                <div className="col-md-6"><div className="subheader">Species</div><strong>{bird.species?.name ?? "-"}</strong></div>
-                <div className="col-md-6"><div className="subheader">Mutation</div><strong>{bird.mutation ?? "-"}</strong></div>
+                <div className="col-md-6"><div className="subheader">Ring number</div><strong>{birdRingNumber}</strong></div>
+                <div className="col-md-6"><div className="subheader">Species</div><strong>{getSpeciesName(bird.species) ?? "-"}</strong></div>
+                <div className="col-md-6"><div className="subheader">Mutation</div><strong>{getMutation(bird)}</strong></div>
                 <div className="col-md-6"><div className="subheader">Sex</div><strong>{bird.sex}</strong></div>
                 <div className="col-md-6"><div className="subheader">Date of birth</div><strong>{bird.date_of_birth ?? "-"}</strong></div>
                 <div className="col-md-6"><div className="subheader">Status</div><strong>{bird.status}</strong></div>

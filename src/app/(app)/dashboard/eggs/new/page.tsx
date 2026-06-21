@@ -1,6 +1,15 @@
 import { getUserAndAviary } from "@/lib/aviary";
 import { createEgg } from "./actions";
 
+function getPairCage(pairRef: unknown): string | undefined {
+  if (Array.isArray(pairRef)) {
+    const first = pairRef[0] as { cage?: string } | undefined;
+    return first?.cage;
+  }
+
+  return (pairRef as { cage?: string } | null | undefined)?.cage;
+}
+
 export default async function NewEggPage() {
   const { supabase, aviary } = await getUserAndAviary();
   const { data: clutches } = await supabase
@@ -21,7 +30,7 @@ export default async function NewEggPage() {
       <form className="card" action={createEgg}>
         <div className="card-body">
           <div className="row g-3">
-            <div className="col-md-6"><label className="form-label">Clutch</label><select name="clutch_id" className="form-select" required><option value="">Select clutch</option>{(clutches ?? []).map((clutch) => <option key={clutch.id} value={clutch.id}>{clutch.nest_number || "Nest"} {clutch.pairs?.cage ? `- ${clutch.pairs.cage}` : ""}</option>)}</select></div>
+            <div className="col-md-6"><label className="form-label">Clutch</label><select name="clutch_id" className="form-select" required><option value="">Select clutch</option>{(clutches ?? []).map((clutch) => <option key={clutch.id} value={clutch.id}>{clutch.nest_number || "Nest"} {getPairCage(clutch.pairs) ? `- ${getPairCage(clutch.pairs)}` : ""}</option>)}</select></div>
             <div className="col-md-3"><label className="form-label">Egg number</label><input name="egg_number" className="form-control" type="number" placeholder="1" /></div>
             <div className="col-md-3"><label className="form-label">Laid date</label><input name="laid_date" className="form-control" type="date" /></div>
             <div className="col-md-4"><label className="form-label">Expected hatch date</label><input name="expected_hatch_date" className="form-control" type="date" /></div>

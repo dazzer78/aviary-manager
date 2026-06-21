@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   IconHome,
-  IconBird,
+  IconFeather,
   IconBox,
   IconUsers,
   IconEgg,
@@ -13,7 +13,7 @@ import {
 
 const navigationItems = [
   { href: "/dashboard", label: "Dashboard", icon: IconHome },
-  { href: "/dashboard/birds", label: "Birds", icon: IconBird },
+  { href: "/dashboard/birds", label: "Birds", icon: IconFeather },
   { href: "/dashboard/species", label: "Species", icon: IconBox },
   { href: "/dashboard/cages", label: "Cages", icon: IconBox },
   { href: "/dashboard/breeding", label: "Breeding Pairs", icon: IconUsers },

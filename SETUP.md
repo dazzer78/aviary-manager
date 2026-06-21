@@ -91,7 +91,7 @@ src/
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 20.x and npm/yarn
 - Supabase account and project
 - Environment variables set up
 

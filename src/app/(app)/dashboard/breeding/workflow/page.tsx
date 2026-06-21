@@ -2,6 +2,15 @@ import { getUserAndAviary } from "@/lib/aviary";
 import { createClutch } from "./actions";
 import { markRinged, recordHatch } from "./progression-actions";
 
+function getRingNumber(birdRef: unknown): string | undefined {
+  if (Array.isArray(birdRef)) {
+    const first = birdRef[0] as { ring_number?: string } | undefined;
+    return first?.ring_number;
+  }
+
+  return (birdRef as { ring_number?: string } | null | undefined)?.ring_number;
+}
+
 export default async function BreedingWorkflowPage() {
   const { supabase, aviary } = await getUserAndAviary();
 
@@ -26,7 +35,7 @@ export default async function BreedingWorkflowPage() {
   const unringedChicks = chicks.filter((chick) => chick.status !== "ringed");
 
   const columns = [
-    { title: "Pairs", items: pairs.map((pair) => ({ title: `${pair.male?.ring_number ?? "Male"} × ${pair.female?.ring_number ?? "Female"}`, meta: pair.cage || "No cage set", badge: pair.status })) },
+    { title: "Pairs", items: pairs.map((pair) => ({ title: `${getRingNumber(pair.male) ?? "Male"} × ${getRingNumber(pair.female) ?? "Female"}`, meta: pair.cage || "No cage set", badge: pair.status })) },
     { title: "Clutches", items: clutches.map((clutch) => ({ title: clutch.nest_number ? `Nest ${clutch.nest_number}` : "Nest", meta: clutch.laid_start_date || "No laid date", badge: clutch.status })) },
     { title: "Eggs", items: eggs.map((egg) => ({ title: "Egg record", meta: egg.expected_hatch_date || "No hatch date", badge: egg.status })) },
     { title: "Chicks", items: unringedChicks.map((chick) => ({ title: "Chick", meta: chick.ring_due_date || "No ring date", badge: chick.status })) },
@@ -47,7 +56,7 @@ export default async function BreedingWorkflowPage() {
           <div className="card h-100">
             <div className="card-header"><h3 className="card-title mb-0">Create Clutch</h3></div>
             <form className="card-body" action={createClutch}>
-              <div className="mb-3"><label className="form-label">Pair</label><select name="pair_id" className="form-select" required><option value="">Select pair</option>{pairs.map((pair) => <option key={pair.id} value={pair.id}>{pair.male?.ring_number ?? "Male"} × {pair.female?.ring_number ?? "Female"}</option>)}</select></div>
+              <div className="mb-3"><label className="form-label">Pair</label><select name="pair_id" className="form-select" required><option value="">Select pair</option>{pairs.map((pair) => <option key={pair.id} value={pair.id}>{getRingNumber(pair.male) ?? "Male"} × {getRingNumber(pair.female) ?? "Female"}</option>)}</select></div>
               <div className="mb-3"><label className="form-label">Nest number</label><input name="nest_number" className="form-control" placeholder="Nest #12" /></div>
               <div className="mb-3"><label className="form-label">Laid start date</label><input name="laid_start_date" type="date" className="form-control" /></div>
               <div className="mb-3"><label className="form-label">Notes</label><input name="notes" className="form-control" placeholder="Optional clutch notes" /></div>
