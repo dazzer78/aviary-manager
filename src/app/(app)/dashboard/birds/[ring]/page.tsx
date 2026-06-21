@@ -1,0 +1,1 @@
+export default function BirdProfilePage() { return (<div className='card'><div className='card-body'><h2>Bird Profile</h2><p>Ring details, photo gallery, treatments, breeding history and notes will appear here.</p></div></div>);}
