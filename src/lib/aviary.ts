@@ -73,29 +73,56 @@ export async function getDashboardData() {
   };
 }
 
-const speciesImageRules: Array<{ terms: string[]; image: string }> = [
-  { terms: ["gouldian", "gouldian finch", "gouldianfinch"], image: "/images/birds/gouldian-1.svg" },
-  { terms: ["zebra", "zebra finch", "zebrafinch"], image: "/images/birds/zebra-1.svg" },
-  { terms: ["canary", "canaries", "fife", "gloster", "norwich", "lizard"], image: "/images/birds/canary.svg" },
-  { terms: ["budgie", "budgerigar", "parakeet"], image: "/images/birds/budgie.svg" },
-  { terms: ["lovebird", "parrot", "cockatiel", "conure", "kakariki"], image: "/images/birds/parrot.svg" },
-  { terms: ["society", "bengalese", "java", "munia", "waxbill", "finch"], image: "/images/birds/finch.svg" },
-  { terms: ["dove", "pigeon"], image: "/images/birds/dove.svg" },
-  { terms: ["quail", "buttonquail"], image: "/images/birds/quail.svg" },
+const stockSpeciesRules: Array<{ terms: string[]; query: string }> = [
+  { terms: ["gouldian", "gouldian finch", "gouldianfinch"], query: "gouldian finch,bird" },
+  { terms: ["zebra", "zebra finch", "zebrafinch"], query: "zebra finch,bird" },
+  { terms: ["canary", "canaries", "fife", "gloster", "norwich", "lizard"], query: "yellow canary,bird" },
+  { terms: ["budgie", "budgerigar", "parakeet"], query: "budgerigar,bird" },
+  { terms: ["lovebird"], query: "lovebird,parrot,bird" },
+  { terms: ["cockatiel"], query: "cockatiel,bird" },
+  { terms: ["conure"], query: "conure,parrot,bird" },
+  { terms: ["kakariki"], query: "kakariki,parrot,bird" },
+  { terms: ["parrot"], query: "parrot,bird" },
+  { terms: ["society", "bengalese"], query: "society finch,bird" },
+  { terms: ["java"], query: "java sparrow,bird" },
+  { terms: ["munia"], query: "munia,bird" },
+  { terms: ["waxbill"], query: "waxbill,bird" },
+  { terms: ["finch"], query: "finch,bird" },
+  { terms: ["dove"], query: "dove,bird" },
+  { terms: ["pigeon"], query: "pigeon,bird" },
+  { terms: ["quail", "buttonquail"], query: "quail,bird" },
 ];
 
-export function fallbackImage(status?: string | null, speciesName?: string | null) {
-  const normalised = (speciesName ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+function normaliseSpeciesName(speciesName?: string | null) {
+  return (speciesName ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function stableImageLock(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash % 10000;
+}
+
+function stockPhotoUrl(query: string) {
+  const safeQuery = encodeURIComponent(query.replace(/\s+/g, " ").trim());
+  return `https://loremflickr.com/480/480/${safeQuery}?lock=${stableImageLock(query)}`;
+}
+
+export function fallbackImage(_status?: string | null, speciesName?: string | null) {
+  const normalised = normaliseSpeciesName(speciesName);
 
   if (normalised) {
-    const match = speciesImageRules.find((rule) =>
+    const match = stockSpeciesRules.find((rule) =>
       rule.terms.some((term) => normalised.includes(term.toLowerCase()))
     );
-    if (match) return match.image;
+    if (match) return stockPhotoUrl(match.query);
+
+    return stockPhotoUrl(`${normalised},bird`);
   }
 
-  if (status === "young") return "/images/birds/zebra-1.svg";
-  return "/images/birds/generic.svg";
+  return stockPhotoUrl("bird");
 }
 
 export function birdImageUrl(bird: { photo_url?: string | null; status?: string | null; species?: { name?: string | null } | { name?: string | null }[] | null }) {
