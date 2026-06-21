@@ -41,12 +41,11 @@ export default async function BirdsPage() {
       <div className="card">
         <div className="table-responsive">
           <table className="table table-vcenter card-table">
-            <thead><tr><th>Ring Number</th><th>Name</th><th>Species</th><th>Mutation</th><th>Sex</th><th>DOB</th><th>Status</th><th /></tr></thead>
+            <thead><tr><th>Ring Number</th><th>Species</th><th>Mutation</th><th>Sex</th><th>DOB</th><th>Status</th><th /></tr></thead>
             <tbody>
               {(birds ?? []).map((bird) => (
                 <tr key={bird.id}>
                   <td><div className="d-flex align-items-center gap-2"><img src={bird.photo_url || fallbackImage(bird.status)} alt={getRingNumber(bird)} className="bird-thumb" /><strong>{getRingNumber(bird)}</strong></div></td>
-                  <td>{bird.name ?? "-"}</td>
                   <td>{getSpeciesName(bird.species) ?? "-"}</td>
                   <td>{getMutation(bird)}</td>
                   <td>{bird.sex}</td>
@@ -55,7 +54,7 @@ export default async function BirdsPage() {
                   <td className="text-end"><Link href={`/dashboard/birds/${encodeURIComponent(getRingNumber(bird))}`} className="btn btn-sm btn-outline-primary">View</Link></td>
                 </tr>
               ))}
-              {(birds ?? []).length === 0 ? <tr><td colSpan={8} className="text-center text-muted py-5">No birds yet. Add your first bird.</td></tr> : null}
+              {(birds ?? []).length === 0 ? <tr><td colSpan={7} className="text-center text-muted py-5">No birds yet. Add your first bird.</td></tr> : null}
             </tbody>
           </table>
         </div>
