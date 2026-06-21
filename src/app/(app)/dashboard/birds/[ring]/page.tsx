@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BirdPhotoGalleryPanel from "@/components/BirdPhotoGalleryPanel";
 import { fallbackImage, getUserAndAviary } from "@/lib/aviary";
 
 function getRingNumber(bird: Record<string, unknown>): string {
@@ -11,11 +12,7 @@ function getMutation(bird: Record<string, unknown>): string {
 }
 
 function getSpeciesName(species: unknown): string | undefined {
-  if (Array.isArray(species)) {
-    const first = species[0] as { name?: string } | undefined;
-    return first?.name;
-  }
-
+  if (Array.isArray(species)) return (species[0] as { name?: string } | undefined)?.name;
   return (species as { name?: string } | null | undefined)?.name;
 }
 
@@ -24,36 +21,22 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
   const { supabase, aviary } = await getUserAndAviary();
   const ringParam = decodeURIComponent(ring);
 
-  let { data: bird, error } = await supabase
+  const { data: bird, error } = await supabase
     .from("birds")
     .select("*, species(name)")
     .eq("aviary_id", aviary.id)
     .eq("ring_number", ringParam)
     .maybeSingle();
 
-  if (error?.message.includes('column "ring_number" does not exist')) {
-    const fallbackResult = await supabase
-      .from("birds")
-      .select("*, species(name)")
-      .eq("aviary_id", aviary.id)
-      .eq("leg_ring", ringParam)
-      .maybeSingle();
-
-    bird = fallbackResult.data;
-    error = fallbackResult.error;
-  }
-
   if (error) throw new Error(error.message);
   if (!bird) notFound();
 
   const birdRingNumber = getRingNumber(bird);
 
-  const { data: treatments } = await supabase
-    .from("treatments")
-    .select("id, treatment_name, treatment_date, follow_up_date, dosage, reason")
-    .eq("aviary_id", aviary.id)
-    .eq("bird_id", bird.id)
-    .order("treatment_date", { ascending: false });
+  const [{ data: treatments }, { data: photos }] = await Promise.all([
+    supabase.from("treatments").select("id, treatment_name, treatment_date, follow_up_date, dosage, reason").eq("aviary_id", aviary.id).eq("bird_id", bird.id).order("treatment_date", { ascending: false }),
+    supabase.from("bird_photos").select("id, image_url, caption, is_primary, file_name").eq("aviary_id", aviary.id).eq("bird_id", bird.id).order("is_primary", { ascending: false }).order("created_at", { ascending: false }),
+  ]);
 
   return (
     <>
@@ -62,7 +45,10 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
           <h2 className="page-title">{birdRingNumber}</h2>
           <div className="text-muted">{getSpeciesName(bird.species) ?? "Unknown species"}</div>
         </div>
-        <Link href={`/dashboard/birds/${encodeURIComponent(birdRingNumber)}/edit`} className="btn btn-primary">Edit bird</Link>
+        <div className="d-flex gap-2">
+          <Link href={`/dashboard/birds/${encodeURIComponent(birdRingNumber)}/family`} className="btn btn-outline-primary">Family tree</Link>
+          <Link href={`/dashboard/birds/${encodeURIComponent(birdRingNumber)}/edit`} className="btn btn-primary">Edit bird</Link>
+        </div>
       </div>
 
       <div className="row row-cards">
@@ -91,6 +77,8 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
               </div>
             </div>
           </div>
+
+          <BirdPhotoGalleryPanel ring={birdRingNumber} photos={photos ?? []} />
 
           <div className="card">
             <div className="card-header"><h3 className="card-title mb-0">Treatment History</h3></div>
