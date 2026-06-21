@@ -1,5 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 const hatchRows = [
   {
     pair: "Gouldian Pair 3",
@@ -93,12 +109,56 @@ const birdRows = [
   },
 ];
 
+const monthlyHatches = [
+  { month: "Jan", chicks: 8, eggs: 16 },
+  { month: "Feb", chicks: 12, eggs: 19 },
+  { month: "Mar", chicks: 18, eggs: 25 },
+  { month: "Apr", chicks: 24, eggs: 31 },
+  { month: "May", chicks: 31, eggs: 38 },
+  { month: "Jun", chicks: 47, eggs: 56 },
+];
+
+const breedingRates = [
+  { month: "Jan", fertility: 72, hatch: 64 },
+  { month: "Feb", fertility: 75, hatch: 68 },
+  { month: "Mar", fertility: 79, hatch: 71 },
+  { month: "Apr", fertility: 82, hatch: 74 },
+  { month: "May", fertility: 85, hatch: 77 },
+  { month: "Jun", fertility: 84, hatch: 76 },
+];
+
+const speciesBreakdown = [
+  { name: "Gouldians", value: 58 },
+  { name: "Canaries", value: 42 },
+  { name: "Zebras", value: 36 },
+  { name: "Other", value: 20 },
+];
+
+const quickActions = [
+  { label: "Add Bird", href: "/dashboard/birds/new", icon: "🐦" },
+  { label: "Create Pair", href: "/dashboard/pairs/new", icon: "💞" },
+  { label: "Record Egg", href: "/dashboard/eggs/new", icon: "🥚" },
+  { label: "Add Treatment", href: "/dashboard/treatments/new", icon: "💊" },
+  { label: "Record Sale", href: "/dashboard/sales/new", icon: "💷" },
+];
+
+const chartColours = ["#2563eb", "#7c3aed", "#16a34a", "#f59e0b"];
+
 export default function DashboardPage() {
   return (
     <>
+      <div className="quick-actions mb-3">
+        {quickActions.map((action) => (
+          <Link href={action.href} className="quick-action" key={action.label}>
+            <span className="quick-action-icon">{action.icon}</span>
+            <span>{action.label}</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="row row-cards mb-3">
         <div className="col-sm-6 col-lg-3">
-          <div className="card">
+          <div className="card stat-card">
             <div className="card-body">
               <div className="d-flex align-items-center">
                 <div className="avatar avatar-lg me-3" style={{ backgroundColor: "#3b82f6" }}>
@@ -115,7 +175,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="col-sm-6 col-lg-3">
-          <div className="card">
+          <div className="card stat-card">
             <div className="card-body">
               <div className="d-flex align-items-center">
                 <div className="avatar avatar-lg me-3" style={{ backgroundColor: "#39c67a" }}>
@@ -132,7 +192,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="col-sm-6 col-lg-3">
-          <div className="card">
+          <div className="card stat-card">
             <div className="card-body">
               <div className="d-flex align-items-center">
                 <div className="avatar avatar-lg me-3" style={{ backgroundColor: "#f59e0b" }}>
@@ -149,7 +209,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="col-sm-6 col-lg-3">
-          <div className="card">
+          <div className="card stat-card">
             <div className="card-body">
               <div className="d-flex align-items-center">
                 <div className="avatar avatar-lg me-3" style={{ backgroundColor: "#7c3aed" }}>
@@ -161,6 +221,71 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-success text-sm mt-2">↑ 8 vs last month</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row row-cards mb-3">
+        <div className="col-lg-8">
+          <div className="card chart-card">
+            <div className="card-header d-flex align-items-center justify-content-between">
+              <div>
+                <h3 className="card-title mb-0">Breeding Performance</h3>
+                <div className="text-muted small">Monthly eggs and chicks recorded this season</div>
+              </div>
+              <span className="badge bg-green-lt text-green">+18% season trend</span>
+            </div>
+            <div className="card-body">
+              <div className="chart-wrap">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyHatches} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="chicksGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.26} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e6eaf0" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="eggs" stroke="#7c3aed" strokeWidth={2} fill="transparent" name="Eggs" />
+                    <Area type="monotone" dataKey="chicks" stroke="#2563eb" strokeWidth={3} fill="url(#chicksGradient)" name="Chicks" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-lg-4">
+          <div className="card chart-card h-100">
+            <div className="card-header">
+              <h3 className="card-title mb-0">Species Mix</h3>
+              <div className="text-muted small">Current registered birds</div>
+            </div>
+            <div className="card-body">
+              <div className="chart-wrap chart-wrap-sm">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={speciesBreakdown} dataKey="value" nameKey="name" innerRadius={58} outerRadius={86} paddingAngle={4}>
+                      {speciesBreakdown.map((entry, index) => (
+                        <Cell key={entry.name} fill={chartColours[index % chartColours.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="species-legend">
+                {speciesBreakdown.map((item, index) => (
+                  <div className="d-flex justify-content-between align-items-center" key={item.name}>
+                    <span><span className="legend-dot" style={{ background: chartColours[index % chartColours.length] }} />{item.name}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -264,20 +389,20 @@ export default function DashboardPage() {
         <div className="col-lg-4">
           <div className="card mb-3">
             <div className="card-header">
-              <h3 className="card-title mb-0">Breeding Overview</h3>
+              <h3 className="card-title mb-0">Fertility & Hatch Rate</h3>
             </div>
-            <div className="card-body d-flex align-items-center gap-3">
-              <div className="donut-chart" aria-label="Breeding chart">
-                <div className="donut-hole">
-                  <div className="h3 mb-0">47</div>
-                  <div className="text-muted text-sm">Total Chicks</div>
-                </div>
-              </div>
-              <div className="small w-100">
-                <div className="d-flex justify-content-between mb-1"><span>Hatched</span><span>47 (56%)</span></div>
-                <div className="d-flex justify-content-between mb-1"><span>In Nest</span><span>22 (26%)</span></div>
-                <div className="d-flex justify-content-between mb-1"><span>Eggs</span><span>18 (21%)</span></div>
-                <div className="d-flex justify-content-between"><span>Lost</span><span>7 (8%)</span></div>
+            <div className="card-body">
+              <div className="chart-wrap chart-wrap-xs">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={breedingRates} margin={{ top: 8, right: 0, left: -28, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e6eaf0" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} unit="%" />
+                    <Tooltip />
+                    <Bar dataKey="fertility" fill="#2563eb" radius={[6, 6, 0, 0]} name="Fertility" />
+                    <Bar dataKey="hatch" fill="#7c3aed" radius={[6, 6, 0, 0]} name="Hatch" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
