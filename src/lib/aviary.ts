@@ -73,7 +73,33 @@ export async function getDashboardData() {
   };
 }
 
-export function fallbackImage(status?: string | null) {
+const speciesImageRules: Array<{ terms: string[]; image: string }> = [
+  { terms: ["gouldian", "gouldian finch", "gouldianfinch"], image: "/images/birds/gouldian-1.svg" },
+  { terms: ["zebra", "zebra finch", "zebrafinch"], image: "/images/birds/zebra-1.svg" },
+  { terms: ["canary", "canaries", "fife", "gloster", "norwich", "lizard"], image: "/images/birds/canary.svg" },
+  { terms: ["budgie", "budgerigar", "parakeet"], image: "/images/birds/budgie.svg" },
+  { terms: ["lovebird", "parrot", "cockatiel", "conure", "kakariki"], image: "/images/birds/parrot.svg" },
+  { terms: ["society", "bengalese", "java", "munia", "waxbill", "finch"], image: "/images/birds/finch.svg" },
+  { terms: ["dove", "pigeon"], image: "/images/birds/dove.svg" },
+  { terms: ["quail", "buttonquail"], image: "/images/birds/quail.svg" },
+];
+
+export function fallbackImage(status?: string | null, speciesName?: string | null) {
+  const normalised = (speciesName ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  if (normalised) {
+    const match = speciesImageRules.find((rule) =>
+      rule.terms.some((term) => normalised.includes(term.toLowerCase()))
+    );
+    if (match) return match.image;
+  }
+
   if (status === "young") return "/images/birds/zebra-1.svg";
-  return "/images/birds/gouldian-1.svg";
+  return "/images/birds/generic.svg";
+}
+
+export function birdImageUrl(bird: { photo_url?: string | null; status?: string | null; species?: { name?: string | null } | { name?: string | null }[] | null }) {
+  if (bird.photo_url) return bird.photo_url;
+  const species = Array.isArray(bird.species) ? bird.species[0]?.name : bird.species?.name;
+  return fallbackImage(bird.status, species);
 }
