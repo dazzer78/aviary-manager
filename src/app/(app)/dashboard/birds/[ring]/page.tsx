@@ -70,7 +70,7 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
           <div className="card">
             <div className="card-body text-center">
               <img src={bird.photo_url || fallbackImage(bird.status)} alt={birdRingNumber} style={{ width: 180, height: 180, borderRadius: "50%", objectFit: "cover" }} />
-              <h3 className="mt-3 mb-1">{bird.name || birdRingNumber}</h3>
+              <h3 className="mt-3 mb-1">{birdRingNumber}</h3>
               <span className="badge bg-blue-lt text-blue">{bird.status}</span>
             </div>
           </div>
