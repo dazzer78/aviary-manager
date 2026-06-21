@@ -12,14 +12,13 @@ export default async function EditBirdPage({ params }: { params: Promise<{ ring:
   const ringNumber = decodeURIComponent(ring);
   const { supabase, aviary } = await getUserAndAviary();
 
-  const { data: bird, error } = await supabase
-    .from("birds")
-    .select("*, species(name)")
-    .eq("aviary_id", aviary.id)
-    .eq("ring_number", ringNumber)
-    .maybeSingle();
+  const [{ data: bird, error }, { data: cages, error: cagesError }] = await Promise.all([
+    supabase.from("birds").select("*, species(name)").eq("aviary_id", aviary.id).eq("ring_number", ringNumber).maybeSingle(),
+    supabase.from("cages").select("id, name, cage_type, location").eq("aviary_id", aviary.id).order("name"),
+  ]);
 
   if (error) throw new Error(error.message);
+  if (cagesError) throw new Error(cagesError.message);
   if (!bird) notFound();
 
   const updateAction = updateBird.bind(null, ring);
@@ -40,6 +39,7 @@ export default async function EditBirdPage({ params }: { params: Promise<{ ring:
             <div className="col-md-4"><label className="form-label">Ring number</label><input name="ring_number" className="form-control" defaultValue={bird.ring_number} required /></div>
             <div className="col-md-4"><label className="form-label">Species</label><input name="species" className="form-control" defaultValue={getSpeciesName(bird.species)} /></div>
             <div className="col-md-4"><label className="form-label">Mutation</label><input name="mutation" className="form-control" defaultValue={bird.mutation ?? ""} /></div>
+            <div className="col-md-4"><label className="form-label">Current Cage</label><select name="cage_id" className="form-select" defaultValue={bird.cage_id ?? ""}><option value="">No cage assigned</option>{(cages ?? []).map((cage) => <option key={cage.id} value={cage.id}>{cage.name} {cage.location ? `- ${cage.location}` : ""}</option>)}</select></div>
             <div className="col-md-4"><label className="form-label">Photo URL</label><input name="photo_url" className="form-control" defaultValue={bird.photo_url ?? ""} /></div>
             <div className="col-md-4"><label className="form-label">Sex</label><select name="sex" className="form-select" defaultValue={bird.sex ?? "unknown"}><option value="unknown">Unknown</option><option value="male">Male</option><option value="female">Female</option></select></div>
             <div className="col-md-4"><label className="form-label">Date of birth</label><input name="date_of_birth" className="form-control" type="date" defaultValue={bird.date_of_birth ?? ""} /></div>
