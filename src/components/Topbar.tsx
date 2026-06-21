@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import NotificationCentre from "@/components/NotificationCentre";
 
 export default function Topbar({ email }: { email: string }) {
   const supabase = createClient();
@@ -20,7 +21,7 @@ export default function Topbar({ email }: { email: string }) {
           <span className="badge bg-blue-lt text-blue">Season 2026</span>
         </div>
 
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-3 topbar-actions">
           <input
             type="text"
             className="form-control"
@@ -28,21 +29,19 @@ export default function Topbar({ email }: { email: string }) {
             style={{ width: 280 }}
           />
 
-          <button className="btn btn-icon btn-outline-secondary">
-            🔔
-          </button>
+          <NotificationCentre />
 
           <div className="d-flex align-items-center gap-2">
             <div
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
-                color: 'white',
-                display: 'grid',
-                placeItems: 'center',
-                fontWeight: 700
+                borderRadius: "50%",
+                background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+                color: "white",
+                display: "grid",
+                placeItems: "center",
+                fontWeight: 700,
               }}
             >
               {userName.charAt(0).toUpperCase()}
