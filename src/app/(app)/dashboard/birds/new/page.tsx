@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createBird } from "./actions";
 
 export default function NewBirdPage() {
@@ -22,7 +23,7 @@ export default function NewBirdPage() {
             <div className="col-md-4"><label className="form-label">Status</label><select name="status" className="form-select"><option value="active">Active</option><option value="young">Young Bird</option><option value="retained">Retained</option><option value="sold">Sold</option><option value="deceased">Deceased</option></select></div>
             <div className="col-12"><label className="form-label">Notes</label><textarea name="notes" className="form-control" rows={4} placeholder="Health, parentage or breeding notes..." /></div>
           </div>
-          <div className="mt-4 d-flex gap-2"><button className="btn btn-primary" type="submit">Save bird</button><a href="/dashboard/birds" className="btn btn-outline-secondary">Cancel</a></div>
+          <div className="mt-4 d-flex gap-2"><button className="btn btn-primary" type="submit">Save bird</button><Link href="/dashboard/birds" className="btn btn-outline-secondary">Cancel</Link></div>
         </div>
       </form>
     </>

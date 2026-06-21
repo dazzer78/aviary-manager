@@ -1,18 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { birdImageUrl, getUserAndAviary } from "@/lib/aviary";
-
-function getSpeciesName(species: unknown): string | undefined {
-  if (Array.isArray(species)) return (species[0] as { name?: string } | undefined)?.name;
-  return (species as { name?: string } | null | undefined)?.name;
-}
-
-function getRingNumber(bird: Record<string, unknown>): string {
-  return String(bird.ring_number ?? bird.leg_ring ?? "-");
-}
-
-function getMutation(bird: Record<string, unknown>): string {
-  return String(bird.mutation ?? bird.color_mutation ?? "-");
-}
+import { birdImageUrl, getMutation, getRingNumber, getSpeciesName, getUserAndAviary } from "@/lib/aviary";
 
 export default async function BirdsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
@@ -67,7 +55,7 @@ export default async function BirdsPage({ searchParams }: { searchParams: Promis
             <tbody>
               {filtered.map((bird) => (
                 <tr key={bird.id}>
-                  <td><div className="d-flex align-items-center gap-2"><img src={birdImageUrl(bird)} alt={getRingNumber(bird)} className="bird-thumb" /><strong>{getRingNumber(bird)}</strong></div></td>
+                  <td><div className="d-flex align-items-center gap-2"><Image unoptimized src={birdImageUrl(bird)} alt={getRingNumber(bird)} className="bird-thumb" width={32} height={32} /><strong>{getRingNumber(bird)}</strong></div></td>
                   <td>{getSpeciesName(bird.species) ?? "-"}</td><td>{getMutation(bird)}</td><td>{bird.sex}</td><td>{bird.cages?.name ?? "-"}</td><td>{bird.date_of_birth ?? "-"}</td><td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td>
                   <td className="text-end"><Link href={`/dashboard/birds/${encodeURIComponent(getRingNumber(bird))}`} className="btn btn-sm btn-outline-primary">View</Link></td>
                 </tr>

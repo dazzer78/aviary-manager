@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createTreatment } from "./actions";
 
 export default function NewTreatmentPage() {
@@ -21,7 +22,7 @@ export default function NewTreatmentPage() {
             <div className="col-12"><label className="form-label">Reason</label><input name="reason" className="form-control" placeholder="Respiratory, mites, quarantine, routine..." /></div>
             <div className="col-12"><label className="form-label">Notes</label><textarea name="notes" className="form-control" rows={4} placeholder="Symptoms, vet advice, response to treatment..." /></div>
           </div>
-          <div className="mt-4 d-flex gap-2"><button className="btn btn-primary" type="submit">Save treatment</button><a href="/dashboard/birds" className="btn btn-outline-secondary">Cancel</a></div>
+          <div className="mt-4 d-flex gap-2"><button className="btn btn-primary" type="submit">Save treatment</button><Link href="/dashboard/birds" className="btn btn-outline-secondary">Cancel</Link></div>
         </div>
       </form>
     </>

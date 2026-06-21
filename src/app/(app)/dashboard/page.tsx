@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import BreedingAlerts from "@/components/BreedingAlerts";
 import DashboardCharts from "@/components/DashboardCharts";
-import { birdImageUrl, getDashboardData } from "@/lib/aviary";
+import { birdImageUrl, getDashboardData, getSpeciesName } from "@/lib/aviary";
 
 const quickActions = [
   { label: "Add Bird", href: "/dashboard/birds/new", icon: "🐦" },
@@ -16,7 +17,13 @@ function monthName(date?: string | null) {
   return new Date(date).toLocaleString("en-GB", { month: "short" });
 }
 
-function buildMonthly(eggs: any[], chicks: any[]) {
+type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+type BreedingAlert = { title: string; message: string; count: number; priority: "critical" | "warning" | "info"; href: string };
+type DashboardBird = DashboardData["birds"][number];
+type DashboardEgg = DashboardData["eggs"][number];
+type DashboardChick = DashboardData["chicks"][number];
+
+function buildMonthly(eggs: DashboardEgg[], chicks: DashboardChick[]) {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return months.map((month) => ({
     month,
@@ -25,9 +32,12 @@ function buildMonthly(eggs: any[], chicks: any[]) {
   }));
 }
 
-function speciesMix(birds: any[]) {
+function speciesMix(birds: DashboardBird[]) {
   const counts = new Map<string, number>();
-  for (const bird of birds) counts.set(bird.species?.name ?? "Unknown", (counts.get(bird.species?.name ?? "Unknown") ?? 0) + 1);
+  for (const bird of birds) {
+    const species = getSpeciesName(bird.species) ?? "Unknown";
+    counts.set(species, (counts.get(species) ?? 0) + 1);
+  }
   const rows = Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
   return rows.length ? rows : [{ name: "No birds yet", value: 1 }];
 }
@@ -39,17 +49,17 @@ function isPast(date?: string | null) {
   return new Date(date) < today;
 }
 
-function buildBreedingAlerts(data: Awaited<ReturnType<typeof getDashboardData>>) {
-  const dueRinging = data.chicks.filter((chick: any) => chick.status === "alive" && isPast(chick.ring_due_date)).length;
-  const overdueTreatments = data.treatments.filter((treatment: any) => isPast(treatment.follow_up_date)).length;
-  const overdueEggs = data.eggs.filter((egg: any) => egg.status === "incubating" && !egg.hatch_date && isPast(egg.expected_hatch_date)).length;
-  const overdueTasks = data.tasks.filter((task: any) => task.status !== "completed" && isPast(task.due_at)).length;
-  const overCapacity = data.cages.filter((cage: any) => {
+function buildBreedingAlerts(data: DashboardData): BreedingAlert[] {
+  const dueRinging = data.chicks.filter((chick) => chick.status === "alive" && isPast(chick.ring_due_date)).length;
+  const overdueTreatments = data.treatments.filter((treatment) => isPast(treatment.follow_up_date)).length;
+  const overdueEggs = data.eggs.filter((egg) => egg.status === "incubating" && !egg.hatch_date && isPast(egg.expected_hatch_date)).length;
+  const overdueTasks = data.tasks.filter((task) => task.status !== "completed" && isPast(task.due_at)).length;
+  const overCapacity = data.cages.filter((cage) => {
     if (!cage.capacity) return false;
-    const count = data.birds.filter((bird: any) => bird.cage_id === cage.id).length;
+    const count = data.birds.filter((bird) => bird.cage_id === cage.id).length;
     return count > cage.capacity;
   }).length;
-  const inactivePairs = data.pairs.filter((pair: any) => {
+  const inactivePairs = data.pairs.filter((pair) => {
     if (pair.status !== "active" || !pair.created_at) return false;
     const days = Math.floor((Date.now() - new Date(pair.created_at).getTime()) / 86400000);
     return days > 30;
@@ -57,27 +67,27 @@ function buildBreedingAlerts(data: Awaited<ReturnType<typeof getDashboardData>>)
 
   return [
     dueRinging ? { title: "chicks overdue for ringing", message: "Ring dates have passed. Review ring pending records.", count: dueRinging, priority: "critical" as const, href: "/dashboard/ring-pending" } : null,
-    overdueTreatments ? { title: "overdue treatment follow-ups", message: "Treatment follow-up dates have passed.", count: overdueTreatments, priority: "critical" as const, href: "/dashboard/treatments" } : null,
-    overdueEggs ? { title: "eggs past expected hatch", message: "Expected hatch date has passed without a hatch record.", count: overdueEggs, priority: "warning" as const, href: "/dashboard/eggs" } : null,
+    overdueTreatments ? { title: "overdue treatment follow-ups", message: "Treatment follow-up dates have passed.", count: overdueTreatments, priority: "critical" as const, href: "/dashboard/health" } : null,
+    overdueEggs ? { title: "eggs past expected hatch", message: "Expected hatch date has passed without a hatch record.", count: overdueEggs, priority: "warning" as const, href: "/dashboard/clutches" } : null,
     overdueTasks ? { title: "overdue tasks", message: "Open reminders are now overdue.", count: overdueTasks, priority: "critical" as const, href: "/dashboard/tasks" } : null,
     overCapacity ? { title: "cages over capacity", message: "One or more cages are above their set capacity.", count: overCapacity, priority: "warning" as const, href: "/dashboard/cages" } : null,
     inactivePairs ? { title: "pairs active over 30 days", message: "Review breeding progress for long-running active pairs.", count: inactivePairs, priority: "info" as const, href: "/dashboard/breeding/workflow" } : null,
-  ].filter(Boolean) as Array<{ title: string; message: string; count: number; priority: "critical" | "warning" | "info"; href: string }>;
+  ].filter((alert): alert is BreedingAlert => alert !== null);
 }
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
   const birds = data.birds;
-  const activePairs = data.pairs.filter((pair: any) => pair.status === "active");
-  const incubatingEggs = data.eggs.filter((egg: any) => egg.status === "incubating");
-  const chicksThisSeason = data.chicks.filter((chick: any) => ["alive", "ringed", "weaned"].includes(chick.status));
+  const activePairs = data.pairs.filter((pair) => pair.status === "active");
+  const incubatingEggs = data.eggs.filter((egg) => egg.status === "incubating");
+  const chicksThisSeason = data.chicks.filter((chick) => ["alive", "ringed", "weaned"].includes(chick.status));
   const breedingAlerts = buildBreedingAlerts(data);
 
   const upcomingHatches = incubatingEggs.slice(0, 5);
   const tasks = [
-    ...data.tasks.slice(0, 3).map((task: any) => task.due_at ? `${task.title} due ${new Date(task.due_at).toLocaleDateString("en-GB")}` : task.title),
-    ...data.chicks.filter((chick: any) => chick.status === "alive" && chick.ring_due_date).slice(0, 2).map((chick: any) => `Ring chick due ${chick.ring_due_date}`),
-    ...data.treatments.filter((treatment: any) => treatment.follow_up_date).slice(0, 2).map((treatment: any) => `Follow up treatment: ${treatment.treatment_name}`),
+    ...data.tasks.slice(0, 3).map((task) => task.due_at ? `${task.title} due ${new Date(task.due_at).toLocaleDateString("en-GB")}` : task.title),
+    ...data.chicks.filter((chick) => chick.status === "alive" && chick.ring_due_date).slice(0, 2).map((chick) => `Ring chick due ${chick.ring_due_date}`),
+    ...data.treatments.filter((treatment) => treatment.follow_up_date).slice(0, 2).map((treatment) => `Follow up treatment: ${treatment.treatment_name}`),
   ].slice(0, 5);
 
   return (
@@ -100,7 +110,7 @@ export default async function DashboardPage() {
         <StatCard title="Chicks This Season" value={chicksThisSeason.length} note="Alive/ringed/weaned" colour="#a3a3a3" />
       </div>
 
-      <DashboardCharts monthly={buildMonthly(data.eggs as any[], data.chicks as any[])} species={speciesMix(birds)} />
+      <DashboardCharts monthly={buildMonthly(data.eggs, data.chicks)} species={speciesMix(birds)} />
 
       <div className="row row-cards">
         <div className="col-lg-6">
@@ -120,7 +130,7 @@ export default async function DashboardPage() {
               <table className="table table-vcenter card-table">
                 <thead><tr><th>Egg</th><th>Expected Date</th><th>Status</th></tr></thead>
                 <tbody>
-                  {upcomingHatches.map((egg: any) => <tr key={egg.id}><td>Egg record</td><td>{egg.expected_hatch_date ?? "-"}</td><td><span className="badge bg-blue-lt text-blue">{egg.status}</span></td></tr>)}
+                  {upcomingHatches.map((egg) => <tr key={egg.id}><td>Egg record</td><td>{egg.expected_hatch_date ?? "-"}</td><td><span className="badge bg-blue-lt text-blue">{egg.status}</span></td></tr>)}
                   {upcomingHatches.length === 0 ? <tr><td colSpan={3} className="text-center text-muted py-4">No upcoming hatches.</td></tr> : null}
                 </tbody>
               </table>
@@ -135,7 +145,7 @@ export default async function DashboardPage() {
           <table className="table table-vcenter card-table">
             <thead><tr><th>Ring Number</th><th>Species</th><th>Mutation</th><th>Sex</th><th>Status</th></tr></thead>
             <tbody>
-              {birds.slice(0, 8).map((bird) => <tr key={bird.id}><td><div className="d-flex align-items-center gap-2"><img src={birdImageUrl(bird)} alt={bird.ring_number} className="bird-thumb" /><span>{bird.ring_number}</span></div></td><td>{bird.species?.name ?? "-"}</td><td>{bird.mutation ?? "-"}</td><td>{bird.sex}</td><td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td></tr>)}
+              {birds.slice(0, 8).map((bird) => <tr key={bird.id}><td><div className="d-flex align-items-center gap-2"><Image unoptimized src={birdImageUrl(bird)} alt={bird.ring_number} className="bird-thumb" width={32} height={32} /><span>{bird.ring_number}</span></div></td><td>{getSpeciesName(bird.species) ?? "-"}</td><td>{bird.mutation ?? "-"}</td><td>{bird.sex}</td><td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td></tr>)}
               {birds.length === 0 ? <tr><td colSpan={5} className="text-center text-muted py-4">No birds yet. Add your first bird.</td></tr> : null}
             </tbody>
           </table>

@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { getUserAndAviary } from "@/lib/aviary";
+import { getRingNumber, getSpeciesName, getUserAndAviary } from "@/lib/aviary";
 
 type BirdRow = {
   id: string;
   ring_number?: string | null;
-  leg_ring?: string | null;
   sex?: string | null;
   mutation?: string | null;
-  color_mutation?: string | null;
   species?: { name?: string | null } | { name?: string | null }[] | null;
 };
 
@@ -28,14 +26,9 @@ type PairRow = {
   legacy_descendants?: string | null;
 };
 
-function getSpeciesName(species: BirdRow["species"]) {
-  if (Array.isArray(species)) return species[0]?.name ?? undefined;
-  return species?.name ?? undefined;
-}
-
 function birdLabel(bird: BirdRow | undefined, fallback?: string | null) {
   if (!bird) return fallback || "Unknown";
-  const ring = bird.ring_number || bird.leg_ring || fallback || "Unknown";
+  const ring = getRingNumber(bird, fallback || "Unknown");
   const species = getSpeciesName(bird.species);
   return species ? `${ring} · ${species}` : ring;
 }
@@ -72,7 +65,7 @@ export default async function BreedingPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("birds")
-      .select("id, ring_number, leg_ring, sex, mutation, color_mutation, species(name)")
+      .select("id, ring_number, sex, mutation, species(name)")
       .eq("aviary_id", aviary.id),
     supabase.from("clutches").select("id, pair_id, status").eq("aviary_id", aviary.id),
     supabase.from("eggs").select("id, clutch_id, status, hatched").eq("aviary_id", aviary.id),

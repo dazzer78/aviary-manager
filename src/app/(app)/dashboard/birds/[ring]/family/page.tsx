@@ -1,12 +1,22 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { fallbackImage, getUserAndAviary } from "@/lib/aviary";
+import { birdImageUrl, getUserAndAviary } from "@/lib/aviary";
 
-function card(title: string, bird: any, active = false) {
+type FamilyBird = {
+  id: string;
+  ring_number: string;
+  mutation: string | null;
+  sex: string | null;
+  photo_url: string | null;
+  status?: string | null;
+};
+
+function card(title: string, bird: FamilyBird | null | undefined, active = false) {
   return (
     <div className={`card h-100 ${active ? "border-primary" : ""}`}>
       <div className="card-body text-center">
-        {bird?.photo_url ? <img src={bird.photo_url} alt={bird.ring_number} style={{ width: 96, height: 96, borderRadius: "50%", objectFit: "cover" }} /> : <div className="avatar avatar-xl mx-auto mb-3">{title[0]}</div>}
+        {bird?.photo_url ? <Image unoptimized src={bird.photo_url} alt={bird.ring_number} width={96} height={96} style={{ width: 96, height: 96, borderRadius: "50%", objectFit: "cover" }} /> : <div className="avatar avatar-xl mx-auto mb-3">{title[0]}</div>}
         <div className="subheader mt-2">{title}</div>
         <h3 className="mb-1">{bird?.ring_number ?? "Unknown"}</h3>
         <div className="text-muted">{bird?.mutation ?? bird?.sex ?? "No record"}</div>
@@ -52,7 +62,7 @@ export default async function BirdFamilyPage({ params }: { params: Promise<{ rin
           <table className="table table-vcenter card-table">
             <thead><tr><th>Ring</th><th>Mutation</th><th>Sex</th><th>Status</th><th /></tr></thead>
             <tbody>
-              {(offspring ?? []).map((child) => <tr key={child.id}><td><img src={child.photo_url || fallbackImage(child.status)} alt={child.ring_number} className="bird-thumb me-2" />{child.ring_number}</td><td>{child.mutation ?? "-"}</td><td>{child.sex}</td><td>{child.status}</td><td><Link href={`/dashboard/birds/${encodeURIComponent(child.ring_number)}`} className="btn btn-sm btn-outline-primary">View</Link></td></tr>)}
+              {(offspring ?? []).map((child) => <tr key={child.id}><td><Image unoptimized src={birdImageUrl(child)} alt={child.ring_number} className="bird-thumb me-2" width={32} height={32} />{child.ring_number}</td><td>{child.mutation ?? "-"}</td><td>{child.sex}</td><td>{child.status}</td><td><Link href={`/dashboard/birds/${encodeURIComponent(child.ring_number)}`} className="btn btn-sm btn-outline-primary">View</Link></td></tr>)}
               {(offspring ?? []).length === 0 ? <tr><td colSpan={5} className="text-center text-muted py-4">No offspring recorded.</td></tr> : null}
             </tbody>
           </table>

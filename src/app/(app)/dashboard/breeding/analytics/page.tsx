@@ -1,6 +1,14 @@
 import BreedingAnalyticsCharts from "@/components/BreedingAnalyticsCharts";
 import { getUserAndAviary } from "@/lib/aviary";
 
+function relationRingNumber(
+  relation: { ring_number?: string | null } | { ring_number?: string | null }[] | null | undefined,
+  fallback: string
+) {
+  if (Array.isArray(relation)) return relation[0]?.ring_number ?? fallback;
+  return relation?.ring_number ?? fallback;
+}
+
 export default async function BreedingAnalyticsPage() {
   const { supabase, aviary } = await getUserAndAviary();
 
@@ -25,7 +33,7 @@ export default async function BreedingAnalyticsPage() {
     const success = pairEggs.length ? Math.round((hatched / pairEggs.length) * 100) : 0;
 
     return {
-      label: `${pair.male?.ring_number ?? "Male"} × ${pair.female?.ring_number ?? "Female"}`,
+      label: `${relationRingNumber(pair.male, "Male")} × ${relationRingNumber(pair.female, "Female")}`,
       eggs: pairEggs.length,
       hatched,
       chicks: pairChicks.length,
@@ -35,7 +43,6 @@ export default async function BreedingAnalyticsPage() {
 
   const totalEggs = rows.reduce((sum, row) => sum + row.eggs, 0);
   const totalHatched = rows.reduce((sum, row) => sum + row.hatched, 0);
-  const totalChicks = rows.reduce((sum, row) => sum + row.chicks, 0);
   const hatchRate = totalEggs ? Math.round((totalHatched / totalEggs) * 100) : 0;
 
   return (

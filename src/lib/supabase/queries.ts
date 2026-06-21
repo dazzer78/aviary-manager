@@ -1,69 +1,68 @@
-import { createClient } from "@supabase/supabase-js";
-import { Bird, Cage, Species, Task } from "../types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Bird, Cage, Species, Task } from "@/lib/aviary";
 
-// Example query functions for server-side operations
-// Use these in your Server Components and API routes
+type QueryClient = Pick<SupabaseClient, "from">;
 
-export async function getBirds(supabase: any, userId: string): Promise<Bird[]> {
+export async function getBirds(supabase: QueryClient, aviaryId: string): Promise<Bird[]> {
   const { data, error } = await supabase
     .from("birds")
     .select("*")
-    .eq("user_id", userId)
+    .eq("aviary_id", aviaryId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as Bird[];
 }
 
-export async function getCages(supabase: any, userId: string): Promise<Cage[]> {
+export async function getCages(supabase: QueryClient, aviaryId: string): Promise<Cage[]> {
   const { data, error } = await supabase
     .from("cages")
     .select("*")
-    .eq("user_id", userId)
+    .eq("aviary_id", aviaryId)
     .order("name", { ascending: true });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as Cage[];
 }
 
 export async function getSpecies(
-  supabase: any,
-  userId: string
+  supabase: QueryClient,
+  aviaryId: string
 ): Promise<Species[]> {
   const { data, error } = await supabase
     .from("species")
     .select("*")
-    .eq("user_id", userId)
+    .eq("aviary_id", aviaryId)
     .order("name", { ascending: true });
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as Species[];
 }
 
 export async function getPendingTasks(
-  supabase: any,
-  userId: string
+  supabase: QueryClient,
+  aviaryId: string
 ): Promise<Task[]> {
   const { data, error } = await supabase
     .from("tasks")
     .select("*")
-    .eq("user_id", userId)
+    .eq("aviary_id", aviaryId)
     .in("status", ["pending", "overdue"])
-    .order("due_date", { ascending: true })
+    .order("due_at", { ascending: true })
     .limit(10);
 
   if (error) throw error;
-  return data;
+  return (data ?? []) as Task[];
 }
 
-export async function getDashboardStats(supabase: any, userId: string) {
+export async function getDashboardStats(supabase: QueryClient, aviaryId: string) {
   const [birds, cages, tasks] = await Promise.all([
-    supabase.from("birds").select("id", { count: "exact" }).eq("user_id", userId),
-    supabase.from("cages").select("id", { count: "exact" }).eq("user_id", userId),
+    supabase.from("birds").select("id", { count: "exact" }).eq("aviary_id", aviaryId),
+    supabase.from("cages").select("id", { count: "exact" }).eq("aviary_id", aviaryId),
     supabase
       .from("tasks")
       .select("id", { count: "exact" })
-      .eq("user_id", userId)
+      .eq("aviary_id", aviaryId)
       .eq("status", "pending"),
   ]);
 

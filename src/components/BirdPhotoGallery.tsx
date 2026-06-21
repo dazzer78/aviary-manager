@@ -1,3 +1,5 @@
+import Image from "next/image";
+import Link from "next/link";
 import type { CSSProperties } from "react";
 
 type BirdPhoto = {
@@ -69,15 +71,15 @@ export default function BirdPhotoGallery({ birds }: { birds: BirdPhoto[] }) {
           <h3 className="card-title mb-0">Featured Birds</h3>
           <div className="text-muted small">Photo-first view for quick bird identification</div>
         </div>
-        <a href="/dashboard/gallery" className="btn btn-sm btn-outline-primary">Open gallery</a>
+        <Link href="/dashboard/photos" className="btn btn-sm btn-outline-primary">Open gallery</Link>
       </div>
 
       <div className="card-body">
         <div style={gridStyle}>
           {birds.slice(0, 5).map((bird) => (
-            <a href={`/dashboard/birds/${bird.ring}`} style={tileStyle} key={bird.ring}>
+            <Link href={`/dashboard/birds/${bird.ring}`} style={tileStyle} key={bird.ring}>
               <div style={frameStyle}>
-                <img src={bird.image} alt={`${bird.ring} ${bird.species}`} style={imageStyle} />
+                <Image unoptimized src={bird.image} alt={`${bird.ring} ${bird.species}`} width={116} height={116} style={imageStyle} />
                 <span style={statusStyle}>{bird.status}</span>
               </div>
               <div style={infoStyle}>
@@ -85,7 +87,7 @@ export default function BirdPhotoGallery({ birds }: { birds: BirdPhoto[] }) {
                 <span className="text-secondary">{bird.species}</span>
                 <small className="text-muted">{bird.mutation} · {bird.sex}</small>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

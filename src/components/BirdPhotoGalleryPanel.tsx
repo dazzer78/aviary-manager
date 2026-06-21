@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { deleteBirdPhoto, setPrimaryPhoto, uploadBirdPhoto } from "@/app/(app)/dashboard/birds/[ring]/photos/actions";
 
 type Photo = {
@@ -29,7 +30,7 @@ export default function BirdPhotoGalleryPanel({ ring, photos }: { ring: string; 
           {photos.map((photo) => (
             <div className="col-sm-6 col-lg-4" key={photo.id}>
               <div className="card h-100">
-                <img src={photo.image_url} alt={photo.caption || photo.file_name || "Bird photo"} style={{ width: "100%", height: 180, objectFit: "cover" }} />
+                <Image unoptimized src={photo.image_url} alt={photo.caption || photo.file_name || "Bird photo"} width={480} height={180} style={{ width: "100%", height: 180, objectFit: "cover" }} />
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
                     <div>

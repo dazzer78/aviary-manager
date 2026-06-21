@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, Bird, CheckSquare, DollarSign, Egg, Heart, Image, LayoutDashboard, Settings, Syringe, Warehouse } from "lucide-react";
+import { BarChart3, Bird, CheckSquare, Egg, Heart, Image, LayoutDashboard, ListTree, Syringe, Warehouse } from "lucide-react";
 
 const items = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -10,13 +10,11 @@ const items = [
   { label: "Cages", href: "/dashboard/cages", icon: Warehouse },
   { label: "Breeding", href: "/dashboard/breeding", icon: Heart },
   { label: "Analytics", href: "/dashboard/breeding/analytics", icon: BarChart3 },
-  { label: "Clutches", href: "/dashboard/eggs", icon: Egg },
-  { label: "Health", href: "/dashboard/treatments", icon: Syringe },
+  { label: "Clutches", href: "/dashboard/clutches", icon: Egg },
+  { label: "Health", href: "/dashboard/health", icon: Syringe },
   { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
-  { label: "Gallery", href: "/dashboard/gallery", icon: Image },
-  { label: "Sales", href: "/dashboard/sales", icon: DollarSign },
-  { label: "Reports", href: "/dashboard/reports", icon: Activity },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Photos", href: "/dashboard/photos", icon: Image },
+  { label: "Species", href: "/dashboard/species", icon: ListTree },
 ] as const;
 
 function isActive(pathname: string, href: string) {

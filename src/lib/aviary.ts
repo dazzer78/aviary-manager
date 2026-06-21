@@ -1,8 +1,29 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+export type Species = {
+  id: string;
+  aviary_id: string;
+  name: string;
+  scientific_name: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type Cage = {
+  id: string;
+  aviary_id: string;
+  name: string;
+  location: string | null;
+  capacity: number | null;
+  status: string | null;
+  created_at: string;
+};
+
 export type Bird = {
   id: string;
+  aviary_id?: string;
+  species_id?: string | null;
   ring_number: string;
   name: string | null;
   sex: "male" | "female" | "unknown";
@@ -14,6 +35,119 @@ export type Bird = {
   cage_id?: string | null;
   species?: { name: string } | null;
 };
+
+export type Pair = {
+  id: string;
+  aviary_id: string;
+  season_id: string | null;
+  male_bird_id: string | null;
+  female_bird_id: string | null;
+  cage: string | null;
+  status: "active" | "resting" | "separated" | "archived" | string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type Clutch = {
+  id: string;
+  aviary_id: string;
+  pair_id: string | null;
+  nest_number: string | null;
+  laid_start_date: string | null;
+  status: "active" | "complete" | "failed" | "archived" | string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type Egg = {
+  id: string;
+  aviary_id: string;
+  clutch_id: string | null;
+  egg_number: number | null;
+  laid_date: string | null;
+  fertile: boolean | null;
+  hatched: boolean;
+  expected_hatch_date: string | null;
+  hatch_date: string | null;
+  status: "incubating" | "hatched" | "infertile" | "lost" | string;
+  notes?: string | null;
+  created_at?: string;
+};
+
+export type Chick = {
+  id: string;
+  aviary_id: string;
+  egg_id: string | null;
+  bird_id: string | null;
+  hatch_date: string | null;
+  ring_due_date: string | null;
+  ringed_date: string | null;
+  status: "alive" | "ringed" | "weaned" | "sold" | "retained" | "lost" | string;
+  notes?: string | null;
+  created_at?: string;
+};
+
+export type Treatment = {
+  id: string;
+  aviary_id: string;
+  bird_id: string;
+  treatment_name: string;
+  treatment_date?: string;
+  follow_up_date: string | null;
+  dosage: string | null;
+  reason?: string | null;
+  notes?: string | null;
+  created_at?: string;
+};
+
+export type Sale = {
+  id: string;
+  aviary_id: string;
+  bird_id: string | null;
+  buyer_name?: string | null;
+  sale_date: string | null;
+  amount: number | null;
+  payment_status?: "paid" | "deposit" | "unpaid" | string;
+  notes?: string | null;
+  created_at?: string;
+};
+
+export type Task = {
+  id: string;
+  aviary_id: string;
+  cage_id: string | null;
+  bird_id: string | null;
+  title: string;
+  description?: string | null;
+  due_at: string | null;
+  status: "pending" | "completed" | "overdue" | string;
+  priority: "low" | "medium" | "high" | string;
+  created_at?: string;
+};
+
+export type BirdPhoto = {
+  id: string;
+  aviary_id: string;
+  bird_id: string;
+  image_url: string;
+  caption: string | null;
+  is_primary?: boolean | null;
+  file_name?: string | null;
+  created_at: string;
+};
+
+export function getSpeciesName(species: { name?: string | null } | { name?: string | null }[] | null | undefined) {
+  if (Array.isArray(species)) return species[0]?.name ?? undefined;
+  return species?.name ?? undefined;
+}
+
+export function getRingNumber(bird: { ring_number?: string | null } | null | undefined, fallback = "-") {
+  return bird?.ring_number ?? fallback;
+}
+
+export function getMutation(bird: { mutation?: string | null } | null | undefined, fallback = "-") {
+  return bird?.mutation ?? fallback;
+}
 
 export async function getUserAndAviary() {
   const supabase = await createClient();
@@ -127,6 +261,6 @@ export function fallbackImage(_status?: string | null, speciesName?: string | nu
 
 export function birdImageUrl(bird: { photo_url?: string | null; status?: string | null; species?: { name?: string | null } | { name?: string | null }[] | null }) {
   if (bird.photo_url) return bird.photo_url;
-  const species = Array.isArray(bird.species) ? bird.species[0]?.name : bird.species?.name;
+  const species = getSpeciesName(bird.species);
   return fallbackImage(bird.status, species);
 }
