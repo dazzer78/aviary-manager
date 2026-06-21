@@ -1,7 +1,7 @@
 import Link from "next/link";
 import BreedingAlerts from "@/components/BreedingAlerts";
 import DashboardCharts from "@/components/DashboardCharts";
-import { fallbackImage, getDashboardData } from "@/lib/aviary";
+import { birdImageUrl, getDashboardData } from "@/lib/aviary";
 
 const quickActions = [
   { label: "Add Bird", href: "/dashboard/birds/new", icon: "🐦" },
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
           <table className="table table-vcenter card-table">
             <thead><tr><th>Ring Number</th><th>Species</th><th>Mutation</th><th>Sex</th><th>Status</th></tr></thead>
             <tbody>
-              {birds.slice(0, 8).map((bird) => <tr key={bird.id}><td><div className="d-flex align-items-center gap-2"><img src={bird.photo_url || fallbackImage(bird.status)} alt={bird.ring_number} className="bird-thumb" /><span>{bird.ring_number}</span></div></td><td>{bird.species?.name ?? "-"}</td><td>{bird.mutation ?? "-"}</td><td>{bird.sex}</td><td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td></tr>)}
+              {birds.slice(0, 8).map((bird) => <tr key={bird.id}><td><div className="d-flex align-items-center gap-2"><img src={birdImageUrl(bird)} alt={bird.ring_number} className="bird-thumb" /><span>{bird.ring_number}</span></div></td><td>{bird.species?.name ?? "-"}</td><td>{bird.mutation ?? "-"}</td><td>{bird.sex}</td><td><span className="badge bg-blue-lt text-blue">{bird.status}</span></td></tr>)}
               {birds.length === 0 ? <tr><td colSpan={5} className="text-center text-muted py-4">No birds yet. Add your first bird.</td></tr> : null}
             </tbody>
           </table>
