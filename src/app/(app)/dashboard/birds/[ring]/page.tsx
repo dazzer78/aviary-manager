@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BirdPhotoGalleryPanel from "@/components/BirdPhotoGalleryPanel";
-import { fallbackImage, getUserAndAviary } from "@/lib/aviary";
+import { birdImageUrl, getUserAndAviary } from "@/lib/aviary";
 
 function getRingNumber(bird: Record<string, unknown>): string {
   return String(bird.ring_number ?? bird.leg_ring ?? "-");
@@ -55,7 +55,7 @@ export default async function BirdProfilePage({ params }: { params: Promise<{ ri
         <div className="col-lg-4">
           <div className="card">
             <div className="card-body text-center">
-              <img src={bird.photo_url || fallbackImage(bird.status)} alt={birdRingNumber} style={{ width: 180, height: 180, borderRadius: "50%", objectFit: "cover" }} />
+              <img src={birdImageUrl(bird)} alt={birdRingNumber} style={{ width: 180, height: 180, borderRadius: "50%", objectFit: "cover" }} />
               <h3 className="mt-3 mb-1">{birdRingNumber}</h3>
               <span className="badge bg-blue-lt text-blue">{bird.status}</span>
             </div>
