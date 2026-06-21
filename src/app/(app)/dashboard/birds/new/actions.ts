@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getUserAndAviary } from "@/lib/aviary";
 
 export async function createBird(formData: FormData) {
-  const { supabase, aviary } = await getUserAndAviary();
+  const { supabase, user, aviary } = await getUserAndAviary();
 
   const speciesName = String(formData.get("species") || "").trim();
   let speciesId: string | null = null;
@@ -22,7 +22,11 @@ export async function createBird(formData: FormData) {
     } else {
       const { data: createdSpecies, error: speciesError } = await supabase
         .from("species")
-        .insert({ aviary_id: aviary.id, name: speciesName })
+        .insert({
+          user_id: user.id,
+          aviary_id: aviary.id,
+          name: speciesName,
+        })
         .select("id")
         .single();
 
@@ -35,6 +39,7 @@ export async function createBird(formData: FormData) {
   if (!ringNumber) throw new Error("Ring number is required");
 
   const { error } = await supabase.from("birds").insert({
+    user_id: user.id,
     aviary_id: aviary.id,
     species_id: speciesId,
     ring_number: ringNumber,
