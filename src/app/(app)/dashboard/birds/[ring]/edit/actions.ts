@@ -33,12 +33,15 @@ export async function updateBird(ring: string, formData: FormData) {
     }
   }
 
+  const cageId = String(formData.get("cage_id") || "").trim() || null;
+
   const { error } = await supabase
     .from("birds")
     .update({
       ring_number: ringNumber,
       name: ringNumber,
       species_id: speciesId,
+      cage_id: cageId,
       sex: String(formData.get("sex") || "unknown"),
       mutation: String(formData.get("mutation") || "").trim() || null,
       date_of_birth: String(formData.get("date_of_birth") || "") || null,
