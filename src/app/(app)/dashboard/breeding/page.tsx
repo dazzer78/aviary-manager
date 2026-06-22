@@ -26,11 +26,32 @@ type PairRow = {
   legacy_descendants?: string | null;
 };
 
-function birdLabel(bird: BirdRow | undefined, fallback?: string | null) {
-  if (!bird) return fallback || "Unknown";
+function sexSymbol(sex?: string | null, fallback = "?") {
+  switch ((sex ?? "").toLowerCase()) {
+    case "male":
+      return "♂";
+    case "female":
+      return "♀";
+    default:
+      return fallback;
+  }
+}
+
+function birdLabel(bird: BirdRow | undefined, fallback?: string | null, forcedSex?: "male" | "female") {
+  if (!bird) {
+    return `${sexSymbol(forcedSex, "")}${fallback || "Unknown"}`;
+  }
+
   const ring = getRingNumber(bird, fallback || "Unknown");
-  const species = getSpeciesName(bird.species);
-  return species ? `${ring} · ${species}` : ring;
+  const labelledRing = `${sexSymbol(bird.sex ?? forcedSex)} ${ring}`;
+  return labelledRing;
+}
+
+function pairSpecies(male: BirdRow | undefined, female: BirdRow | undefined) {
+  const maleSpecies = getSpeciesName(male?.species);
+  const femaleSpecies = getSpeciesName(female?.species);
+  if (maleSpecies && femaleSpecies) return maleSpecies === femaleSpecies ? maleSpecies : `${maleSpecies} / ${femaleSpecies}`;
+  return maleSpecies ?? femaleSpecies ?? "Unknown";
 }
 
 function displayDate(date?: string | null) {
@@ -54,7 +75,14 @@ function statusClass(status?: string | null) {
   }
 }
 
-export default async function BreedingPage() {
+export default async function BreedingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const selectedStatus = params.status ?? "active";
+  const selectedSpecies = params.species ?? "";
   const { supabase, aviary } = await getUserAndAviary();
 
   const [{ data: pairs, error: pairsError }, { data: birds, error: birdsError }, { data: clutches }, { data: eggs }] = await Promise.all([
@@ -93,9 +121,25 @@ export default async function BreedingPage() {
   }
 
   const pairRows = (pairs ?? []) as PairRow[];
-  const activePairs = pairRows.filter((pair) => pair.status === "active").length;
-  const totalClutches = pairRows.reduce((sum, pair) => sum + (clutchesByPair.get(pair.id) ?? pair.legacy_clutches ?? 0), 0);
-  const totalEggs = pairRows.reduce((sum, pair) => sum + (eggsByPair.get(pair.id) ?? pair.legacy_eggs ?? 0), 0);
+  const speciesOptions = Array.from(
+    new Set(
+      pairRows
+        .map((pair) => pairSpecies(birdById.get(pair.male_bird_id ?? ""), birdById.get(pair.female_bird_id ?? "")))
+        .filter((value) => value && value !== "Unknown")
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredPairs = pairRows.filter((pair) => {
+    const male = birdById.get(pair.male_bird_id ?? "");
+    const female = birdById.get(pair.female_bird_id ?? "");
+    const species = pairSpecies(male, female);
+
+    return (!selectedStatus || pair.status === selectedStatus) && (!selectedSpecies || species === selectedSpecies);
+  });
+
+  const activePairs = filteredPairs.filter((pair) => pair.status === "active").length;
+  const totalClutches = filteredPairs.reduce((sum, pair) => sum + (clutchesByPair.get(pair.id) ?? pair.legacy_clutches ?? 0), 0);
+  const totalEggs = filteredPairs.reduce((sum, pair) => sum + (eggsByPair.get(pair.id) ?? pair.legacy_eggs ?? 0), 0);
 
   return (
     <>
@@ -105,17 +149,50 @@ export default async function BreedingPage() {
           <div className="text-muted">Imported pair records from your spreadsheet and live Aviary Manager data.</div>
         </div>
         <div className="d-flex gap-2">
+          <Link href="/dashboard/pairs/new" className="btn btn-outline-secondary">Add Pair</Link>
           <Link href="/dashboard/breeding/workflow" className="btn btn-outline-primary">Workflow</Link>
           <Link href="/dashboard/breeding/analytics" className="btn btn-primary">Analytics</Link>
         </div>
       </div>
 
       <div className="row row-cards mb-3">
-        <Metric title="Pairs" value={pairRows.length} />
+        <Metric title="Pairs" value={filteredPairs.length} />
         <Metric title="Active" value={activePairs} />
         <Metric title="Clutches" value={totalClutches} />
         <Metric title="Eggs" value={totalEggs} />
       </div>
+
+      <form className="card mb-3">
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-md-3">
+              <label className="form-label">Status</label>
+              <select name="status" defaultValue={selectedStatus} className="form-select">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="resting">Resting</option>
+                <option value="separated">Separated</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Species</label>
+              <select name="species" defaultValue={selectedSpecies} className="form-select">
+                <option value="">All</option>
+                {speciesOptions.map((species) => (
+                  <option key={species} value={species}>
+                    {species}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3 d-flex align-items-end gap-2">
+              <button className="btn btn-primary" type="submit">Filter</button>
+              <Link href="/dashboard/breeding" className="btn btn-outline-secondary">Reset</Link>
+            </div>
+          </div>
+        </div>
+      </form>
 
       <div className="card">
         <div className="table-responsive">
@@ -124,37 +201,42 @@ export default async function BreedingPage() {
               <tr>
                 <th>Male</th>
                 <th>Female</th>
+                <th>Species</th>
                 <th>Cage / Nest</th>
                 <th>Pairing Date</th>
                 <th>Clutches</th>
                 <th>Eggs</th>
                 <th>Status</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {pairRows.map((pair) => {
+              {filteredPairs.map((pair) => {
                 const male = birdById.get(pair.male_bird_id ?? "");
                 const female = birdById.get(pair.female_bird_id ?? "");
+                const species = pairSpecies(male, female);
                 const pairClutches = clutchesByPair.get(pair.id) ?? pair.legacy_clutches ?? 0;
                 const pairEggs = eggsByPair.get(pair.id) ?? pair.legacy_eggs ?? 0;
                 const cageNest = [pair.cage, pair.nest_number ? `Nest ${pair.nest_number}` : null].filter(Boolean).join(" / ") || "-";
 
                 return (
                   <tr key={pair.id}>
-                    <td><strong>{birdLabel(male, pair.legacy_male_ring)}</strong></td>
-                    <td><strong>{birdLabel(female, pair.legacy_female_ring)}</strong></td>
+                    <td><strong>{birdLabel(male, pair.legacy_male_ring, "male")}</strong></td>
+                    <td><strong>{birdLabel(female, pair.legacy_female_ring, "female")}</strong></td>
+                    <td>{species}</td>
                     <td>{cageNest}</td>
                     <td>{displayDate(pair.start_date ?? pair.created_at)}</td>
                     <td>{pairClutches}</td>
                     <td>{pairEggs}</td>
                     <td><span className={statusClass(pair.status)}>{pair.status ?? "unknown"}</span></td>
+                    <td className="text-end"><Link href={`/dashboard/pairs/${pair.id}/edit`} className="btn btn-sm btn-outline-primary">Edit</Link></td>
                   </tr>
                 );
               })}
-              {pairRows.length === 0 ? (
+              {filteredPairs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted py-5">
-                    No breeding pairs found. Import the spreadsheet or create your first pair.
+                  <td colSpan={9} className="text-center text-muted py-5">
+                    No breeding pairs match those filters.
                   </td>
                 </tr>
               ) : null}

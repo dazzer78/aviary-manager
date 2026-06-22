@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Button, Group, Text, TextInput } from "@mantine/core";
@@ -76,7 +77,9 @@ export default function Topbar({
                 </option>
               ))}
             </select>
-            <span className="am-season-picker-hint">{seasonRangeLabel}</span>
+            <Link href="/dashboard/settings" className="am-season-picker-hint am-season-picker-link">
+              {seasonRangeLabel}
+            </Link>
           </div>
         </Group>
 
