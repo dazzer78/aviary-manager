@@ -17,7 +17,7 @@ export default async function IncubatingPage() {
   const { supabase, aviary } = await getUserAndAviary();
   const { data: eggs, error } = await supabase
     .from("eggs")
-    .select("id, egg_number, laid_date, expected_hatch_date, hatch_date, status, clutch_id, legacy_clutch_number")
+    .select("id, egg_number, laid_date, expected_hatch_date, hatch_date, status, clutch_id")
     .eq("aviary_id", aviary.id)
     .eq("status", "incubating")
     .order("expected_hatch_date", { ascending: true, nullsFirst: false });
@@ -52,7 +52,7 @@ export default async function IncubatingPage() {
               {rows.map((egg) => (
                 <tr key={egg.id}>
                   <td><strong>{egg.egg_number ? `Egg ${egg.egg_number}` : "Egg record"}</strong></td>
-                  <td>{egg.legacy_clutch_number || egg.clutch_id || "-"}</td>
+                  <td>{egg.clutch_id || "-"}</td>
                   <td>{displayDate(egg.laid_date)}</td>
                   <td>{displayDate(egg.expected_hatch_date)}</td>
                   <td><span className={isPast(egg.expected_hatch_date) ? "badge bg-red-lt text-red" : "badge bg-blue-lt text-blue"}>{egg.status}</span></td>
