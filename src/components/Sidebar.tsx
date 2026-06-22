@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bird, CheckSquare, Egg, Heart, Image, LayoutDashboard, ListTree, Syringe, Warehouse } from "lucide-react";
+import { BarChart3, Bird, CheckSquare, Egg, Heart, Image, LayoutDashboard, ListTree, Settings, Syringe, Warehouse } from "lucide-react";
 
 const items = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -15,6 +15,7 @@ const items = [
   { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
   { label: "Photos", href: "/dashboard/photos", icon: Image },
   { label: "Species", href: "/dashboard/species", icon: ListTree },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ] as const;
 
 function isActive(pathname: string, href: string) {

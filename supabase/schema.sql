@@ -42,8 +42,11 @@ create table if not exists public.breeding_seasons (
   aviary_id uuid references public.aviaries(id) on delete cascade,
   name text not null,
   year int not null,
+  start_date date,
+  end_date date,
   is_active boolean not null default false,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (aviary_id, year)
 );
 
 create table if not exists public.pairs (
@@ -149,6 +152,8 @@ alter table public.species add column if not exists aviary_id uuid references pu
 alter table public.birds add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
 alter table public.birds add column if not exists ring_number text;
 alter table public.breeding_seasons add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
+alter table public.breeding_seasons add column if not exists start_date date;
+alter table public.breeding_seasons add column if not exists end_date date;
 alter table public.pairs add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
 alter table public.clutches add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;
 alter table public.eggs add column if not exists aviary_id uuid references public.aviaries(id) on delete cascade;

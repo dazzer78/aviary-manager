@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import BreedingAlerts from "@/components/BreedingAlerts";
 import DashboardCharts from "@/components/DashboardCharts";
-import { birdImageUrl, getDashboardData, getSpeciesName } from "@/lib/aviary";
+import { getSeasonBounds, getSelectedSeasonYear, type SeasonDefinition } from "@/lib/season";
+import { birdImageUrl, getDashboardData, getSeasonDefinitionByYear, getSeasonDefinitions, getSpeciesName, getUserAndAviary } from "@/lib/aviary";
 
 const quickActions = [
   { label: "Add Bird", href: "/dashboard/birds/new", icon: "🐦" },
@@ -12,23 +13,51 @@ const quickActions = [
   { label: "Record Sale", href: "/dashboard/sales/new", icon: "💷" },
 ];
 
-function monthName(date?: string | null) {
-  if (!date) return "Unknown";
-  return new Date(date).toLocaleString("en-GB", { month: "short" });
-}
-
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 type BreedingAlert = { title: string; message: string; count: number; priority: "critical" | "warning" | "info"; href: string };
 type DashboardBird = DashboardData["birds"][number];
 type DashboardEgg = DashboardData["eggs"][number];
 type DashboardChick = DashboardData["chicks"][number];
 
-function buildMonthly(eggs: DashboardEgg[], chicks: DashboardChick[]) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return months.map((month) => ({
-    month,
-    eggs: eggs.filter((egg) => monthName(egg.expected_hatch_date) === month).length,
-    chicks: chicks.filter((chick) => monthName(chick.ring_due_date) === month).length,
+function parseDate(value?: string | null) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatMonthLabel(date: Date) {
+  return date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+}
+
+function buildMonthly(season: Pick<SeasonDefinition, "year" | "start_date" | "end_date">, eggs: DashboardEgg[], chicks: DashboardChick[]) {
+  const { start, end } = getSeasonBounds(season);
+  const monthBuckets: Array<{ month: string; start: Date; end: Date }> = [];
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+  const finalMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+
+  while (cursor <= finalMonth) {
+    const bucketStart = new Date(cursor);
+    const bucketEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
+    monthBuckets.push({
+      month: formatMonthLabel(bucketStart),
+      start: bucketStart,
+      end: bucketEnd,
+    });
+
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return monthBuckets.map((bucket) => ({
+    month: bucket.month,
+    eggs: eggs.filter((egg) => {
+      const date = parseDate(egg.expected_hatch_date);
+      return date ? date >= bucket.start && date <= bucket.end : false;
+    }).length,
+    chicks: chicks.filter((chick) => {
+      const date = parseDate(chick.ring_due_date);
+      return date ? date >= bucket.start && date <= bucket.end : false;
+    }).length,
   }));
 }
 
@@ -76,8 +105,13 @@ function buildBreedingAlerts(data: DashboardData): BreedingAlert[] {
 }
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const { supabase, aviary } = await getUserAndAviary();
+  const seasons = await getSeasonDefinitions(supabase, aviary.id);
+  const seasonYear = await getSelectedSeasonYear(seasons.map((season) => season.year));
+  const selectedSeason = getSeasonDefinitionByYear(seasons, seasonYear);
+  const data = await getDashboardData(selectedSeason);
   const birds = data.birds;
+  const activeBirds = birds.filter((bird) => bird.status === "active");
   const activePairs = data.pairs.filter((pair) => pair.status === "active");
   const incubatingEggs = data.eggs.filter((egg) => egg.status === "incubating");
   const chicksThisSeason = data.chicks.filter((chick) => ["alive", "ringed", "weaned"].includes(chick.status));
@@ -104,13 +138,13 @@ export default async function DashboardPage() {
       <BreedingAlerts alerts={breedingAlerts} />
 
       <div className="row row-cards mb-3 mt-3">
-        <StatCard title="Total Birds" value={birds.length} note="Live Supabase count" colour="#171717" />
+        <StatCard title="Total Birds" value={activeBirds.length} note={`Current active birds for ${seasonYear}`} colour="#171717" />
         <StatCard title="Active Pairs" value={activePairs.length} note="Currently breeding" colour="#404040" />
         <StatCard title="Eggs Incubating" value={incubatingEggs.length} note="Awaiting hatch" colour="#737373" />
         <StatCard title="Chicks This Season" value={chicksThisSeason.length} note="Alive/ringed/weaned" colour="#a3a3a3" />
       </div>
 
-      <DashboardCharts monthly={buildMonthly(data.eggs, data.chicks)} species={speciesMix(birds)} />
+      <DashboardCharts monthly={buildMonthly(selectedSeason, data.eggs, data.chicks)} species={speciesMix(activeBirds)} />
 
       <div className="row row-cards">
         <div className="col-lg-6">

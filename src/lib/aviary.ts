@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { createDefaultSeasonDefinition, mergeSeasonDefinitions, matchesSeason, type SeasonDefinition } from "@/lib/season";
 import { createClient } from "@/lib/supabase/server";
 
 export type Species = {
@@ -34,6 +35,7 @@ export type Bird = {
   notes: string | null;
   cage_id?: string | null;
   species?: { name: string } | null;
+  created_at?: string | null;
 };
 
 export type Pair = {
@@ -136,6 +138,8 @@ export type BirdPhoto = {
   created_at: string;
 };
 
+export type BreedingSeason = SeasonDefinition;
+
 export function getSpeciesName(species: { name?: string | null } | { name?: string | null }[] | null | undefined) {
   if (Array.isArray(species)) return species[0]?.name ?? undefined;
   return species?.name ?? undefined;
@@ -176,34 +180,81 @@ export async function getUserAndAviary() {
   return { supabase, user, aviary: created };
 }
 
-export async function getDashboardData() {
+export async function getSeasonDefinitions(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  aviaryId: string
+) {
+  const { data, error } = await supabase
+    .from("breeding_seasons")
+    .select("id, aviary_id, name, year, start_date, end_date, is_active, created_at")
+    .eq("aviary_id", aviaryId)
+    .order("year", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return mergeSeasonDefinitions((data ?? []) as BreedingSeason[]);
+}
+
+export function getSeasonDefinitionByYear(seasons: BreedingSeason[], year: number) {
+  return seasons.find((season) => season.year === year) ?? createDefaultSeasonDefinition(year);
+}
+
+export async function getDashboardData(season: BreedingSeason) {
   const { supabase, aviary } = await getUserAndAviary();
 
   const [birds, pairs, eggs, chicks, treatments, sales, cages, tasks] = await Promise.all([
-    supabase.from("birds").select("*, species(name)").eq("aviary_id", aviary.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("birds").select("*, species(name)").eq("aviary_id", aviary.id).order("created_at", { ascending: false }),
     supabase.from("pairs").select("id, status, created_at").eq("aviary_id", aviary.id),
-    supabase.from("eggs").select("id, status, expected_hatch_date, hatch_date").eq("aviary_id", aviary.id),
-    supabase.from("chicks").select("id, status, ring_due_date").eq("aviary_id", aviary.id),
-    supabase.from("treatments").select("id, treatment_name, follow_up_date").eq("aviary_id", aviary.id).order("treatment_date", { ascending: false }).limit(20),
-    supabase.from("sales").select("id, amount, sale_date").eq("aviary_id", aviary.id).order("sale_date", { ascending: false }).limit(5),
+    supabase.from("eggs").select("id, status, laid_date, expected_hatch_date, hatch_date, created_at").eq("aviary_id", aviary.id),
+    supabase.from("chicks").select("id, status, hatch_date, ring_due_date, created_at").eq("aviary_id", aviary.id),
+    supabase.from("treatments").select("id, treatment_name, treatment_date, follow_up_date, created_at").eq("aviary_id", aviary.id).order("treatment_date", { ascending: false }),
+    supabase.from("sales").select("id, amount, sale_date, created_at").eq("aviary_id", aviary.id).order("sale_date", { ascending: false }),
     supabase.from("cages").select("id, name, capacity, status").eq("aviary_id", aviary.id),
-    supabase.from("tasks").select("id, title, due_at, status, priority").eq("aviary_id", aviary.id).neq("status", "completed").order("due_at", { ascending: true, nullsFirst: false }).limit(20),
+    supabase.from("tasks").select("id, title, due_at, status, priority, created_at").eq("aviary_id", aviary.id).neq("status", "completed").order("due_at", { ascending: true, nullsFirst: false }),
   ]);
 
   for (const result of [birds, pairs, eggs, chicks, treatments, sales, cages, tasks]) {
     if (result.error) throw new Error(result.error.message);
   }
 
+  const seasonBirds = (birds.data ?? []).filter((bird) =>
+    matchesSeason(season, bird.date_of_birth, bird.created_at)
+  ) as Bird[];
+
+  const seasonPairs = (pairs.data ?? []).filter((pair) =>
+    matchesSeason(season, pair.created_at)
+  );
+
+  const seasonEggs = (eggs.data ?? []).filter((egg) =>
+    matchesSeason(season, egg.laid_date, egg.hatch_date, egg.expected_hatch_date, egg.created_at)
+  );
+
+  const seasonChicks = (chicks.data ?? []).filter((chick) =>
+    matchesSeason(season, chick.hatch_date, chick.ring_due_date, chick.created_at)
+  );
+
+  const seasonTreatments = (treatments.data ?? []).filter((treatment) =>
+    matchesSeason(season, treatment.treatment_date, treatment.follow_up_date, treatment.created_at)
+  );
+
+  const seasonSales = (sales.data ?? []).filter((sale) =>
+    matchesSeason(season, sale.sale_date, sale.created_at)
+  );
+
+  const seasonTasks = (tasks.data ?? []).filter((task) =>
+    matchesSeason(season, task.due_at, task.created_at)
+  );
+
   return {
     aviary,
-    birds: (birds.data ?? []) as Bird[],
-    pairs: pairs.data ?? [],
-    eggs: eggs.data ?? [],
-    chicks: chicks.data ?? [],
-    treatments: treatments.data ?? [],
-    sales: sales.data ?? [],
+    birds: seasonBirds,
+    pairs: seasonPairs,
+    eggs: seasonEggs,
+    chicks: seasonChicks,
+    treatments: seasonTreatments,
+    sales: seasonSales,
     cages: cages.data ?? [],
-    tasks: tasks.data ?? [],
+    tasks: seasonTasks,
   };
 }
 

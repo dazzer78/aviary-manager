@@ -1,23 +1,31 @@
 import Image from "next/image";
 import Link from "next/link";
-import { birdImageUrl, getMutation, getRingNumber, getSpeciesName, getUserAndAviary } from "@/lib/aviary";
+import { getSelectedSeasonYear, matchesSeason } from "@/lib/season";
+import { birdImageUrl, getMutation, getRingNumber, getSeasonDefinitionByYear, getSeasonDefinitions, getSpeciesName, getUserAndAviary } from "@/lib/aviary";
 
 export default async function BirdsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
   const q = (params.q ?? "").toLowerCase();
   const sex = params.sex ?? "";
-  const status = params.status ?? "";
+  const status = params.status ?? "active";
   const cage = params.cage ?? "";
 
   const { supabase, aviary } = await getUserAndAviary();
+  const seasons = await getSeasonDefinitions(supabase, aviary.id);
+  const seasonYear = await getSelectedSeasonYear(seasons.map((season) => season.year));
+  const selectedSeason = getSeasonDefinitionByYear(seasons, seasonYear);
   const [{ data: birds, error }, { data: cages }] = await Promise.all([
-    supabase.from("birds").select("*, species(name), cages(name)").eq("aviary_id", aviary.id).order("created_at", { ascending: false }),
+    supabase.from("birds").select("*, species(name), cages(name), created_at").eq("aviary_id", aviary.id).order("created_at", { ascending: false }),
     supabase.from("cages").select("id, name").eq("aviary_id", aviary.id).order("name"),
   ]);
 
   if (error) throw new Error(error.message);
 
-  const filtered = (birds ?? []).filter((bird) => {
+  const seasonBirds = (birds ?? []).filter((bird) =>
+    matchesSeason(selectedSeason, bird.date_of_birth, bird.created_at)
+  );
+
+  const filtered = seasonBirds.filter((bird) => {
     const text = [getRingNumber(bird), getSpeciesName(bird.species), getMutation(bird), bird.notes].join(" ").toLowerCase();
     return (!q || text.includes(q)) && (!sex || bird.sex === sex) && (!status || bird.status === status) && (!cage || bird.cage_id === cage);
   });
