@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bird, CheckSquare, Egg, Heart, Image, LayoutDashboard, ListTree, Settings, Syringe, Warehouse } from "lucide-react";
+import { BarChart3, Bird, CheckSquare, Circle, Egg, Heart, Image, LayoutDashboard, ListTree, Settings, Syringe, Warehouse } from "lucide-react";
+
+type SidebarCounts = {
+  incubating?: number;
+  ringPending?: number;
+};
 
 const items = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -11,6 +16,8 @@ const items = [
   { label: "Breeding", href: "/dashboard/breeding", icon: Heart },
   { label: "Analytics", href: "/dashboard/breeding/analytics", icon: BarChart3 },
   { label: "Clutches", href: "/dashboard/clutches", icon: Egg },
+  { label: "Ring Pending", href: "/dashboard/ring-pending", icon: Circle, countKey: "ringPending" },
+  { label: "Incubating", href: "/dashboard/incubating", icon: Egg, countKey: "incubating" },
   { label: "Health", href: "/dashboard/health", icon: Syringe },
   { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
   { label: "Photos", href: "/dashboard/photos", icon: Image },
@@ -23,7 +30,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function Sidebar() {
+export default function Sidebar({ counts = {} }: { counts?: SidebarCounts }) {
   const pathname = usePathname();
 
   return (
@@ -40,10 +47,12 @@ export default function Sidebar() {
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname, item.href);
+          const count = "countKey" in item ? counts[item.countKey] ?? 0 : 0;
           return (
             <Link href={item.href} key={item.href} className={`am-nav-link${active ? " active" : ""}`}>
               <Icon size={17} />
               <span>{item.label}</span>
+              {count > 0 ? <span className="am-nav-count">{count}</span> : null}
             </Link>
           );
         })}
